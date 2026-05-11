@@ -3,6 +3,11 @@ name = "guest"
 version = "0.0.0"
 edition = "2021"
 
+# Declared as its own workspace root so cargo doesn't try to fold the guest
+# into the parent workspace at ../../Cargo.toml. The guest is compiled
+# separately by risc0-build with the RISC0 RISC-V toolchain.
+[workspace]
+
 [[bin]]
 name = "guest"
 path = "src/main.rs"
