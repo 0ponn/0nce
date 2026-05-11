@@ -83,7 +83,7 @@ In order:
 
 1. Parse `email_raw` enough to locate the `DKIM-Signature` header at `dkim_header_index`. Assert the header starts with the exact bytes `DKIM-Signature:` (case-insensitive per RFC 6376 §3.2). Parse its tag-value list.
 
-2. Extract from the DKIM-Signature header: `v`, `a`, `c`, `d`, `s`, `h`, `bh`, `b`, and any others present. Assert `v=1`. Assert `a` is `rsa-sha256` (v0 supports only this; document the restriction). Assert `d` (domain field) equals the public input `claimed_domain`. Assert `s` equals the witnessed `selector`.
+2. Extract from the DKIM-Signature header: `v`, `a`, `c`, `d`, `s`, `h`, `bh`, `b`, and any others present. Assert `v=1`. Assert `a` is `rsa-sha256` (v0 supports only this; document the restriction). Assert `d` (domain field) equals the public input `claimed_domain`. Assert `s` equals the witnessed `selector`. Assert the `l=` (body-length-limit) tag is **not present** — v0 does not implement body-length truncation; accepting `l=` unhandled would let an attacker shrink the body-hash scope, so we reject. Deferred to v1 (§8).
 
 3. Apply the canonicalization specified by `c=` (header/body algorithm pair) to the relevant portions of `email_raw`. v0 supports `relaxed/relaxed` only. Document the restriction. Other canonicalizations are a future-version task; assert and fail otherwise.
 
@@ -164,6 +164,7 @@ Listed here so they're not forgotten and not silently smuggled in:
 - Recipient binding — proving the prover received the email, not merely possesses it.
 - Body content disclosure — selectively revealing one regex match from the body (the standard ZK-Email selective disclosure pattern).
 - Multiple canonicalization modes, multiple signature algorithms (Ed25519 is in RFC 8463).
+- DKIM body-length-limit (`l=` tag) support. v0 rejects emails whose DKIM-Signature includes `l=`. v1 would canonicalize the body then truncate to `l` bytes before SHA-256.
 - Network transport, Tor, receiver federation, all the platform-level concerns.
 
 ---

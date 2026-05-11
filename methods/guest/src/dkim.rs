@@ -87,9 +87,9 @@ pub fn locate_and_parse(
     let bh = lookup(&tags, b"bh").expect("bh= missing");
     let b_tag = lookup(&tags, b"b").expect("b= missing");
 
-    // v0 restriction: `l=` (body-length-limit) tag is not supported.
-    // SPEC.md doesn't enumerate it, but accepting it without honoring it
-    // would let an attacker truncate the body-hash scope. Reject it here.
+    // SPEC.md §4 step 2: `l=` (body-length-limit) tag is not supported in v0.
+    // Accepting it without honoring it would let an attacker truncate the
+    // body-hash scope. Reject. Deferred to v1 (SPEC.md §8).
     assert!(lookup(&tags, b"l").is_none(), "l= tag not supported in v0");
 
     // §4.2: protocol version.
