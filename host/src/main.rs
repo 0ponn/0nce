@@ -1,20 +1,88 @@
-//! Host — SPEC.md §5 (prover side) and §6 (verifier side).
-//!
-//! Two subcommands planned for v0:
-//!
-//!   prove   — read an email file + claimed_domain + claimed_pubkey,
-//!             build the witness (SPEC.md §5), invoke the zkVM prover,
-//!             write the proof artifact and public inputs to disk.
-//!
-//!   verify  — read a proof artifact + claimed public inputs, run the
-//!             zkVM verifier (SPEC.md §6), extract the nullifier, check it
-//!             against the local nullifier store, output (accepted,
-//!             claimed_domain, nullifier).
-//!
-//! Not implemented yet. The host is **not trusted**: anything the host could
-//! lie about must be re-asserted inside the guest (SPEC.md §5).
+//! 0nce host CLI. SPEC.md §5 (prove) and §6 (verify).
 
-fn main() {
-    eprintln!("0nce host: not implemented — see SPEC.md §5, §6");
-    std::process::exit(1);
+use anyhow::Result;
+use clap::{Parser, Subcommand};
+use std::path::PathBuf;
+
+mod dns;
+mod email;
+mod nullifier_store;
+mod prove;
+mod verify;
+
+#[derive(Parser)]
+#[command(name = "0nce", about = "ZK-Email insider proof, v0 (SPEC.md)")]
+struct Cli {
+    #[command(subcommand)]
+    cmd: Cmd,
+}
+
+#[derive(Subcommand)]
+enum Cmd {
+    /// Produce a zero-knowledge proof that the email was DKIM-signed by its
+    /// claimed domain. Resolves the public key via DNS by default; use
+    /// --pubkey-tag for offline mode (test fixtures).
+    Prove {
+        /// Path to a raw RFC 5322 email file (.eml).
+        #[arg(long)]
+        email: PathBuf,
+
+        /// Path to write the proof artifact. Defaults to <email>.proof.bin.
+        #[arg(long)]
+        out: Option<PathBuf>,
+
+        /// DKIM1 TXT record text, e.g. "v=DKIM1; k=rsa; p=MIIBIj...".
+        /// When supplied, skips the DNS lookup. Use this for test fixtures
+        /// or air-gapped operation.
+        #[arg(long)]
+        pubkey_tag: Option<String>,
+
+        /// Skip the interactive pubkey-confirmation prompt.
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
+    /// Verify a proof artifact and check its nullifier against the local store.
+    Verify {
+        /// Path to the proof artifact (output of `prove`).
+        #[arg(long)]
+        proof: PathBuf,
+
+        /// Path to the nullifier store. Defaults to $HOME/.0nce/nullifiers.txt.
+        #[arg(long)]
+        nullifier_store: Option<PathBuf>,
+    },
+}
+
+fn main() -> Result<()> {
+    let cli = Cli::parse();
+    match cli.cmd {
+        Cmd::Prove { email, out, pubkey_tag, yes } => {
+            let out_path = out.unwrap_or_else(|| {
+                let mut p = email.clone();
+                let stem = p.file_stem().map(|s| s.to_owned()).unwrap_or_default();
+                p.set_file_name({
+                    let mut s = stem;
+                    s.push(".proof.bin");
+                    s
+                });
+                p
+            });
+            prove::run(prove::ProveArgs {
+                email_path: &email,
+                out_path: &out_path,
+                pubkey_tag_override: pubkey_tag.as_deref(),
+                assume_yes: yes,
+            })
+        }
+        Cmd::Verify { proof, nullifier_store } => {
+            let store = nullifier_store.unwrap_or_else(|| {
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+                PathBuf::from(home).join(".0nce").join("nullifiers.txt")
+            });
+            verify::run(verify::VerifyArgs {
+                proof_path: &proof,
+                nullifier_store_path: &store,
+            })
+        }
+    }
 }
