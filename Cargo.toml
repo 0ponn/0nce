@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["host", "methods"]
+# Note: methods/guest is intentionally excluded from the workspace.
+# It is compiled separately by risc0-build (via methods/build.rs) using the
+# RISC0 RISC-V toolchain. See SPEC.md §4 for what the guest must do.
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+
+[profile.release]
+opt-level = 3
+lto = true
+debug = false
+codegen-units = 1
+
+[profile.dev]
+opt-level = 0

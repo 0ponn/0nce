@@ -1,0 +1,12 @@
+[package]
+name = "host"
+version = "0.0.0"
+edition = "2021"
+
+[[bin]]
+name = "0nce"
+path = "src/main.rs"
+
+[dependencies]
+risc0-zkvm = { version = "1" }
+methods = { path = "../methods" }

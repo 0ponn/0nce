@@ -1,0 +1,4 @@
+[toolchain]
+channel = "stable"
+# The RISC0 guest uses a separate RISC-V toolchain managed by `rzup`.
+# Install: https://dev.risczero.com/api/zkvm/install
