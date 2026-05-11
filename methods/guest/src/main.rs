@@ -20,6 +20,7 @@
 #![cfg_attr(not(test), no_main)]
 
 mod body;
+mod bytes_util;
 mod canonical;
 mod dkim;
 mod nullifier;

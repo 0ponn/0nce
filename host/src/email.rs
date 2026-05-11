@@ -143,3 +143,88 @@ fn strip_wsp_crlf(input: &[u8]) -> Vec<u8> {
 fn is_wsp_or_crlf(b: u8) -> bool {
     b == b' ' || b == b'\t' || b == b'\r' || b == b'\n'
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_email(dkim_line: &str, body: &str) -> Vec<u8> {
+        format!("From: a@x\r\nTo: b@y\r\n{}\r\n\r\n{}", dkim_line, body).into_bytes()
+    }
+
+    #[test]
+    fn extracts_all_four_required_fields() {
+        let email = make_email(
+            "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; \
+             d=example.com; s=sel1; h=From:To; bh=AAAA; b=BBBB",
+            "Hello",
+        );
+        let r = extract(&email).unwrap();
+        assert_eq!(r.domain, b"example.com");
+        assert_eq!(r.selector, b"sel1");
+        assert_eq!(r.signature_b64, b"BBBB");
+        assert_eq!(r.body_hash_b64, b"AAAA");
+        // header_index points at "DKIM-Signature:" after "From:...\r\nTo:...\r\n"
+        assert_eq!(r.header_index as usize, b"From: a@x\r\nTo: b@y\r\n".len());
+    }
+
+    #[test]
+    fn header_name_match_is_case_insensitive() {
+        let email = make_email(
+            "dkim-signature: v=1; a=rsa-sha256; c=relaxed/relaxed; \
+             d=example.com; s=sel; h=From; bh=AA; b=BB",
+            "",
+        );
+        let r = extract(&email).unwrap();
+        assert_eq!(r.domain, b"example.com");
+    }
+
+    #[test]
+    fn errors_on_missing_dkim_signature() {
+        let email = b"From: a@b\r\n\r\nHello".to_vec();
+        assert!(extract(&email).is_err());
+    }
+
+    #[test]
+    fn errors_on_missing_required_tag() {
+        // Missing b= tag.
+        let email = make_email(
+            "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; \
+             d=example.com; s=sel; h=From; bh=AA",
+            "Hello",
+        );
+        assert!(extract(&email).is_err());
+    }
+
+    #[test]
+    fn handles_continuation_lines_in_dkim_value() {
+        // The DKIM-Signature value is folded across multiple lines (the
+        // standard layout for real-world signers because b= is long).
+        let email = b"From: a@x\r\n\
+            DKIM-Signature: v=1; a=rsa-sha256;\r\n\
+            \tc=relaxed/relaxed; d=example.com;\r\n\
+            \ts=sel; h=From; bh=AAAA;\r\n\
+            \tb=BBBB\r\n\
+            \r\n\
+            Hello".to_vec();
+        let r = extract(&email).unwrap();
+        assert_eq!(r.domain, b"example.com");
+        assert_eq!(r.selector, b"sel");
+    }
+
+    #[test]
+    fn signature_whitespace_stripped() {
+        // RFC 6376 §3.5: whitespace inside b= / bh= values must be stripped
+        // before treating as base64. The host extractor does this so the
+        // witness it passes to the guest is already clean.
+        let email = b"From: a@x\r\n\
+            DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; \
+            d=example.com; s=sel; h=From; bh=AA\tBB\r\n\
+            \tCC; b=DD EE\r\n\
+            \r\n".to_vec();
+        let r = extract(&email).unwrap();
+        // Whitespace + CRLF + tabs in bh and b values should all be stripped.
+        assert_eq!(r.body_hash_b64, b"AABBCC");
+        assert_eq!(r.signature_b64, b"DDEE");
+    }
+}

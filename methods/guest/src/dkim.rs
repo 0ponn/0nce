@@ -6,6 +6,10 @@
 
 use base64::{engine::general_purpose, Engine};
 
+use crate::bytes_util::{
+    bytes_eq_case_insensitive, is_wsp, is_wsp_or_crlf, strip_wsp_crlf, trim_wsp_crlf,
+};
+
 const HEADER_NAME: &[u8] = b"DKIM-Signature:";
 
 /// v0 supports only `relaxed/relaxed`. Other modes panic in step 2.
@@ -93,14 +97,14 @@ pub fn locate_and_parse(
     assert!(lookup(&tags, b"l").is_none(), "l= tag not supported in v0");
 
     // §4.2: protocol version.
-    assert_eq!(trim_wsp(v), b"1", "v tag must be 1");
+    assert_eq!(trim_wsp_crlf(v), b"1", "v tag must be 1");
 
     // §4.2: algorithm — v0 supports only rsa-sha256.
-    assert_eq!(trim_wsp(a), b"rsa-sha256", "a tag must be rsa-sha256");
+    assert_eq!(trim_wsp_crlf(a), b"rsa-sha256", "a tag must be rsa-sha256");
 
     // §4.2 ∩ §4.3 v0 restriction: relaxed/relaxed only.
     assert_eq!(
-        trim_wsp(c),
+        trim_wsp_crlf(c),
         b"relaxed/relaxed",
         "c tag must be relaxed/relaxed (v0)"
     );
@@ -110,13 +114,13 @@ pub fn locate_and_parse(
     // If this assertion is weakened or removed, the proof becomes vacuously
     // trivial — a prover could claim any domain.
     assert_eq!(
-        trim_wsp(d),
+        trim_wsp_crlf(d),
         claimed_domain,
         "d tag does not match claimed_domain (public-input binding)"
     );
 
     // §4.2: s == witnessed_selector.
-    assert_eq!(trim_wsp(s), witnessed_selector, "s tag != witnessed selector");
+    assert_eq!(trim_wsp_crlf(s), witnessed_selector, "s tag != witnessed selector");
 
     // §4.2 / SPEC.md §5 host-trust guard: b and bh in the header must match
     // what the host put in the witness. Compare after WSP/CRLF strip (RFC
@@ -142,9 +146,9 @@ pub fn locate_and_parse(
 
     DkimHeader {
         canonicalization: Canonicalization::RelaxedRelaxed,
-        domain: trim_wsp(d).to_vec(),
-        selector: trim_wsp(s).to_vec(),
-        signed_headers_raw: trim_wsp(h).to_vec(),
+        domain: trim_wsp_crlf(d).to_vec(),
+        selector: trim_wsp_crlf(s).to_vec(),
+        signed_headers_raw: trim_wsp_crlf(h).to_vec(),
         body_hash,
         signature,
         header_start: start,
@@ -153,10 +157,6 @@ pub fn locate_and_parse(
 }
 
 // --- helpers ----------------------------------------------------------------
-
-fn bytes_eq_case_insensitive(a: &[u8], b: &[u8]) -> bool {
-    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.eq_ignore_ascii_case(y))
-}
 
 /// Returns exclusive byte offset just past the CRLF that ends the header.
 /// RFC 5322: header ends at CRLF not followed by WSP, or EOF.
@@ -188,7 +188,7 @@ fn parse_tag_list(input: &[u8]) -> Vec<(&[u8], &[u8])> {
             .iter()
             .position(|&b| b == b'=')
             .expect("malformed DKIM tag (no '=')");
-        let name = trim_wsp(&piece[..eq_idx]);
+        let name = trim_wsp_crlf(&piece[..eq_idx]);
         let value = &piece[eq_idx + 1..];
         tags.push((name, value));
     }
@@ -197,39 +197,6 @@ fn parse_tag_list(input: &[u8]) -> Vec<(&[u8], &[u8])> {
 
 fn lookup<'a>(tags: &'a [(&'a [u8], &'a [u8])], name: &[u8]) -> Option<&'a [u8]> {
     tags.iter().find(|(n, _)| *n == name).map(|(_, v)| *v)
-}
-
-fn trim_wsp(input: &[u8]) -> &[u8] {
-    let start = input
-        .iter()
-        .position(|&b| !is_wsp_or_crlf(b))
-        .unwrap_or(input.len());
-    let end = input
-        .iter()
-        .rposition(|&b| !is_wsp_or_crlf(b))
-        .map(|i| i + 1)
-        .unwrap_or(0);
-    if start <= end {
-        &input[start..end]
-    } else {
-        &[]
-    }
-}
-
-fn strip_wsp_crlf(input: &[u8]) -> Vec<u8> {
-    input
-        .iter()
-        .copied()
-        .filter(|b| !is_wsp_or_crlf(*b))
-        .collect()
-}
-
-fn is_wsp(b: u8) -> bool {
-    b == b' ' || b == b'\t'
-}
-
-fn is_wsp_or_crlf(b: u8) -> bool {
-    is_wsp(b) || b == b'\r' || b == b'\n'
 }
 
 // --- unit tests -------------------------------------------------------------

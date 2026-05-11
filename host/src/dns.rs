@@ -138,6 +138,91 @@ fn read_integer(input: &[u8]) -> Result<(&[u8], &[u8])> {
     Ok((body, rest))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use base64::Engine;
+
+    #[test]
+    fn join_dig_txt_handles_single_quoted_chunk() {
+        let stdout = "\"v=DKIM1; k=rsa; p=ABC\"\n";
+        assert_eq!(join_dig_txt(stdout), "v=DKIM1; k=rsa; p=ABC");
+    }
+
+    #[test]
+    fn join_dig_txt_handles_multiple_quoted_chunks() {
+        // Real DKIM records are commonly split across multiple "..." chunks
+        // because TXT record string max is 255 bytes.
+        let stdout = "\"v=DKIM1; k=rsa; p=PART1\" \"PART2\" \"PART3\"\n";
+        assert_eq!(join_dig_txt(stdout), "v=DKIM1; k=rsa; p=PART1PART2PART3");
+    }
+
+    #[test]
+    fn parse_dkim_tag_rejects_missing_v() {
+        assert!(parse_dkim_tag("k=rsa; p=abc").is_err());
+    }
+
+    #[test]
+    fn parse_dkim_tag_rejects_non_dkim1_v() {
+        assert!(parse_dkim_tag("v=DKIM2; k=rsa; p=abc").is_err());
+    }
+
+    #[test]
+    fn parse_dkim_tag_rejects_non_rsa_k() {
+        // v0 supports rsa-sha256 only. Ed25519 (RFC 8463) is a v1 candidate.
+        assert!(parse_dkim_tag("v=DKIM1; k=ed25519; p=abc").is_err());
+    }
+
+    #[test]
+    fn parse_dkim_tag_rejects_missing_p() {
+        assert!(parse_dkim_tag("v=DKIM1; k=rsa").is_err());
+    }
+
+    #[test]
+    fn der_walker_extracts_modulus_and_exponent() {
+        // Synthetic SubjectPublicKeyInfo for an RSA key with small modulus
+        // and exponent 65537 (AQAB). The walker treats modulus and exponent
+        // as opaque byte slices; this test only verifies that DER navigation
+        // works (skipping AlgorithmIdentifier, descending into BIT STRING +
+        // RSAPublicKey SEQUENCE, then reading two INTEGERs).
+        let der: Vec<u8> = vec![
+            0x30, 0x20, // SEQUENCE, 32 bytes
+                0x30, 0x0D, // AlgorithmIdentifier SEQUENCE, 13 bytes
+                    0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, // OID rsaEncryption
+                    0x05, 0x00, // NULL
+                0x03, 0x0F, // BIT STRING, 15 bytes
+                    0x00, // unused bits = 0
+                    0x30, 0x0C, // RSAPublicKey SEQUENCE, 12 bytes
+                        0x02, 0x05, 0x00, 0x01, 0x02, 0x03, 0x04, // modulus INTEGER with sign-pad 0x00
+                        0x02, 0x03, 0x01, 0x00, 0x01, // exponent INTEGER (65537)
+        ];
+        let r = extract_modulus_exponent_from_spki(&der).unwrap();
+        // The leading sign-pad 0x00 is stripped per read_integer.
+        assert_eq!(r.n, vec![0x01, 0x02, 0x03, 0x04]);
+        assert_eq!(r.e, vec![0x01, 0x00, 0x01]); // = 65537
+    }
+
+    #[test]
+    fn parse_dkim_tag_decodes_synthetic_record() {
+        // End-to-end: build the synthetic SPKI bytes, base64-encode, wrap in
+        // a v=DKIM1 record, parse, recover (n, e).
+        let der: Vec<u8> = vec![
+            0x30, 0x20,
+                0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D,
+                0x01, 0x01, 0x01, 0x05, 0x00,
+                0x03, 0x0F, 0x00,
+                    0x30, 0x0C,
+                        0x02, 0x05, 0x00, 0x01, 0x02, 0x03, 0x04,
+                        0x02, 0x03, 0x01, 0x00, 0x01,
+        ];
+        let p_b64 = base64::engine::general_purpose::STANDARD.encode(&der);
+        let tag = format!("v=DKIM1; k=rsa; p={}", p_b64);
+        let r = parse_dkim_tag(&tag).unwrap();
+        assert_eq!(r.n, vec![0x01, 0x02, 0x03, 0x04]);
+        assert_eq!(r.e, vec![0x01, 0x00, 0x01]);
+    }
+}
+
 fn read_tlv(input: &[u8]) -> Result<(&[u8], &[u8])> {
     if input.len() < 2 {
         bail!("truncated DER");

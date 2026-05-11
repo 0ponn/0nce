@@ -8,12 +8,10 @@
 //! responsible for asserting `c=relaxed/relaxed` before invoking these
 //! functions; this module assumes that check has passed.
 //!
-//! Implementation notes:
-//!   - Byte-level only. No UTF-8 assumptions. RFC 5322 is 7-bit ASCII for
-//!     header field names; values may contain 8-bit data with appropriate
-//!     transfer encoding, but canonicalization is byte-level either way.
-//!   - WSP per RFC 5234: SP (0x20) and HTAB (0x09).
-//!   - CRLF per RFC 5322: the two-byte sequence 0x0D 0x0A.
+//! WSP per RFC 5234: SP (0x20) and HTAB (0x09). CRLF per RFC 5322: 0x0D 0x0A.
+//! Shared byte helpers live in [`crate::bytes_util`].
+
+use crate::bytes_util::{is_wsp, trim_wsp};
 
 /// Apply RFC 6376 §3.4.2 "relaxed" header canonicalization to a single
 /// header field, returning the canonicalized bytes including the final CRLF.
@@ -149,22 +147,8 @@ fn collapse_wsp(input: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Strip leading and trailing WSP.
-fn trim_wsp(input: &[u8]) -> &[u8] {
-    let start = input.iter().position(|&b| !is_wsp(b)).unwrap_or(input.len());
-    let end = input
-        .iter()
-        .rposition(|&b| !is_wsp(b))
-        .map(|i| i + 1)
-        .unwrap_or(0);
-    if start <= end {
-        &input[start..end]
-    } else {
-        &[]
-    }
-}
-
-/// Strip trailing WSP only.
+/// Strip trailing WSP only (canonical-specific; bytes_util has trim_wsp for
+/// leading + trailing).
 fn strip_trailing_wsp(input: &[u8]) -> &[u8] {
     let end = input
         .iter()
@@ -172,11 +156,6 @@ fn strip_trailing_wsp(input: &[u8]) -> &[u8] {
         .map(|i| i + 1)
         .unwrap_or(0);
     &input[..end]
-}
-
-#[inline]
-fn is_wsp(b: u8) -> bool {
-    b == b' ' || b == b'\t'
 }
 
 // --- unit tests ------------------------------------------------------------

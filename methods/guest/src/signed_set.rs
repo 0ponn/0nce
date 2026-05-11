@@ -13,6 +13,7 @@
 //!   2. Append the canonicalized DKIM-Signature header with the `b=` tag
 //!      value emptied and NO trailing CRLF (§3.7 and §5.4 step 2).
 
+use crate::bytes_util::{bytes_eq_case_insensitive, strip_trailing_crlf, trim_wsp};
 use crate::canonical;
 
 /// SPEC.md §4 step 5. Returns the bytes that get SHA-256'd in §4.6.
@@ -35,17 +36,22 @@ pub fn build_signed_data(
         .filter(|n| !n.is_empty())
         .collect();
 
-    // Track how many of each name we've already consumed.
-    let mut counts: std::collections::HashMap<Vec<u8>, usize> =
-        std::collections::HashMap::new();
+    // Track how many of each name we've already consumed. h= typically has
+    // 5..10 names; a linear scan beats a HashMap for both readability and
+    // line count.
+    let mut counts: Vec<(Vec<u8>, usize)> = Vec::new();
 
     for name in &names {
         let lc: Vec<u8> = name.iter().map(|b| b.to_ascii_lowercase()).collect();
-        let n = *counts.get(&lc).unwrap_or(&0);
+        let n = counts.iter().find(|(k, _)| *k == lc).map(|(_, v)| *v).unwrap_or(0);
         let value = find_nth_header_value(headers_above, name, n).unwrap_or(&[]);
         let canonicalized = canonical::canonicalize_header_relaxed(name, value);
         output.extend_from_slice(&canonicalized);
-        *counts.entry(lc).or_insert(0) += 1;
+        if let Some(entry) = counts.iter_mut().find(|(k, _)| *k == lc) {
+            entry.1 += 1;
+        } else {
+            counts.push((lc, 1));
+        }
     }
 
     // Append the DKIM-Signature header with b= emptied, no trailing CRLF.
@@ -76,7 +82,7 @@ fn find_nth_header_value<'a>(
         let line_end = find_field_end(headers_block, i);
         if let Some(c) = headers_block[i..line_end].iter().position(|&b| b == b':') {
             let this_name = &headers_block[i..i + c];
-            if name_eq_ignore_case(this_name, name) {
+            if bytes_eq_case_insensitive(this_name, name) {
                 if found == n {
                     let value_start = i + c + 1;
                     let value_end = if line_end >= 2 && &headers_block[line_end - 2..line_end] == b"\r\n" {
@@ -156,35 +162,6 @@ fn null_b_tag(canonicalized: &[u8]) -> Vec<u8> {
     }
     out.extend_from_slice(trailing);
     out
-}
-
-fn strip_trailing_crlf(input: &[u8]) -> &[u8] {
-    if input.ends_with(b"\r\n") {
-        &input[..input.len() - 2]
-    } else {
-        input
-    }
-}
-
-fn trim_wsp(input: &[u8]) -> &[u8] {
-    let start = input
-        .iter()
-        .position(|&c| c != b' ' && c != b'\t')
-        .unwrap_or(input.len());
-    let end = input
-        .iter()
-        .rposition(|&c| c != b' ' && c != b'\t')
-        .map(|i| i + 1)
-        .unwrap_or(0);
-    if start <= end {
-        &input[start..end]
-    } else {
-        &[]
-    }
-}
-
-fn name_eq_ignore_case(a: &[u8], b: &[u8]) -> bool {
-    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.eq_ignore_ascii_case(y))
 }
 
 // -- unit tests ------------------------------------------------------------
