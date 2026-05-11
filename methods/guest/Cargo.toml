@@ -16,14 +16,15 @@ path = "src/main.rs"
 risc0-zkvm = { version = "1", default-features = false, features = ["std"] }
 nce-core = { path = "../../core" }
 base64 = "0.22"
-# Per SPEC.md guardrails: dependencies are added when their corresponding §4
-# step is implemented, not pre-emptively. Already added:
-#   §4.1/§4.2 (header parse) — base64 for b/bh decoding, nce-core for types
-#   §4.3 (canonicalization)  — pure stdlib, no dep
+sha2 = "0.10"
+# Dependencies added per SPEC.md §4 step that needs them. Already added:
+#   §4.1/§4.2 (header parse): base64 for b/bh decoding, nce-core for types
+#   §4.3 (canonicalization):  pure stdlib, no dep
+#   §4.4 (SHA-256 of body):   sha2 crate (RISC0 accelerator patch is a v1
+#                             prove-time optimization; v0 uses unpatched sha2)
 # Expected:
-#   §4.4 (SHA-256 of body)   — risc0 sha2 accelerator or sha2 crate
-#   §4.6 (RSA verify)        — rsa crate (verify only) + bigint syscalls
-#   §4.7 (Poseidon nullifier) — light-poseidon (BN254, Circom/Iden3 params)
+#   §4.6 (RSA verify):        rsa crate (verify only) + bigint syscalls
+#   §4.7 (Poseidon nullifier): light-poseidon (BN254, Circom/Iden3 params)
 
 [profile.release]
 opt-level = 3

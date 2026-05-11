@@ -7,14 +7,16 @@
 //!   - The cryptographic statement in SPEC.md §2 is the contract.
 //!
 //! Pure-function modules carry their own `#[cfg(test)]` unit tests:
-//!   - `canonical` — SPEC.md §4.3 relaxed/relaxed canonicalization
-//!   - `dkim`      — SPEC.md §4.1 + §4.2 header location, parse, assertions
+//!   * `canonical`: SPEC.md §4.3 relaxed/relaxed canonicalization
+//!   * `dkim`:      SPEC.md §4.1 + §4.2 header location, parse, assertions
+//!   * `body`:      SPEC.md §4.4 body SHA-256 verification
 //!
 //! Build with the RISC0 toolchain to produce a guest ELF; build natively
 //! (`cargo test`) to run those unit tests on the host architecture.
 
 #![cfg_attr(not(test), no_main)]
 
+mod body;
 mod canonical;
 mod dkim;
 
@@ -40,7 +42,7 @@ fn main() {
     // §4.1 + §4.2: locate, parse, validate the DKIM-Signature header. Any
     // assertion failure (wrong magic, wrong v/a/c, d != claimed_domain,
     // s != selector, b or bh != witness, l= present) panics here.
-    let _parsed = dkim::locate_and_parse(
+    let parsed = dkim::locate_and_parse(
         &witness.email_raw,
         witness.dkim_header_index,
         &public_inputs.claimed_domain,
@@ -49,12 +51,9 @@ fn main() {
         &witness.body_hash,
     );
 
-    // TODO §4.3: invoke canonical::canonicalize_body_relaxed on the body
-    //            portion of email_raw (everything after the end-of-headers
-    //            blank line). Also canonical::canonicalize_header_relaxed
-    //            for the signed-header set in §4.5.
-    //
-    // TODO §4.4: SHA-256 of canonicalized body, assert == parsed.body_hash.
+    // §4.4: SHA-256 of canonicalized body, assert == parsed.body_hash.
+    // The canonicalization (§4.3 body half) is invoked inside verify_body_hash.
+    body::verify_body_hash(&witness.email_raw, &parsed.body_hash);
     //
     // TODO §4.5: construct canonicalized header set per parsed.signed_headers_raw,
     //            append DKIM-Signature header with b= emptied (RFC 6376 §3.7).

@@ -53,17 +53,12 @@ pub fn canonicalize_header_relaxed(name: &[u8], value: &[u8]) -> Vec<u8> {
 ///   1. For each line (split by CRLF): collapse WSP runs to a single SP, then
 ///      strip trailing WSP.
 ///   2. Ignore all empty lines at the end of the message body.
-///   3. If the resulting body is non-empty, terminate it with exactly one
-///      CRLF. If empty, the canonicalized body is empty (zero bytes).
+///   3. Terminate the result with exactly one CRLF.
 ///
-/// Note: RFC 6376 §3.4.3 (simple canonicalization) and §3.4.4 (relaxed) both
-/// specify that "an empty body is canonicalized as a single CRLF." This is
-/// frequently misread. The v0 reading: a body with no non-empty lines yields
-/// zero bytes here, and the caller (the SHA-256 step) must handle the
-/// "empty body" convention if it matters for `bh` matching. The SPEC.md §4.4
-/// assertion `SHA-256(canonicalized body) == bh` is what closes the loop —
-/// real DKIM signers vary in how they handle empty bodies, so the test
-/// suite (§7) is the final arbiter of correctness here.
+/// The terminating CRLF is emitted unconditionally: per RFC 6376 §3.4.3
+/// (referenced from §3.4.4 for empty-line semantics), an empty body
+/// canonicalizes to a single CRLF; this matches what real DKIM signers
+/// produce, e.g. `bh` for an empty body is SHA-256(`b"\r\n"`).
 pub fn canonicalize_body_relaxed(body: &[u8]) -> Vec<u8> {
     // Split on CRLF. A trailing CRLF produces a final empty line which we'll
     // strip; a body with no trailing CRLF puts its last partial line in the
@@ -98,7 +93,8 @@ pub fn canonicalize_body_relaxed(body: &[u8]) -> Vec<u8> {
         processed.pop();
     }
 
-    // Rejoin with CRLF, append final CRLF if non-empty.
+    // Rejoin with CRLF between lines, then unconditionally terminate with
+    // CRLF (RFC 6376 §3.4.3 inherited by §3.4.4 for the empty-body case).
     let mut out = Vec::new();
     for (idx, line) in processed.iter().enumerate() {
         if idx > 0 {
@@ -106,9 +102,7 @@ pub fn canonicalize_body_relaxed(body: &[u8]) -> Vec<u8> {
         }
         out.extend_from_slice(line);
     }
-    if !processed.is_empty() {
-        out.extend_from_slice(b"\r\n");
-    }
+    out.extend_from_slice(b"\r\n");
     out
 }
 
@@ -263,14 +257,17 @@ mod tests {
     // -- body canonicalization --
 
     #[test]
-    fn body_empty_is_empty() {
-        assert_eq!(canonicalize_body_relaxed(b""), b"".to_vec());
+    fn body_empty_canonicalizes_to_single_crlf() {
+        // RFC 6376 §3.4.3 (inherited by §3.4.4): empty body → single CRLF.
+        // Real DKIM signers produce bh = SHA-256(b"\r\n") for empty bodies.
+        assert_eq!(canonicalize_body_relaxed(b""), b"\r\n".to_vec());
     }
 
     #[test]
-    fn body_only_crlfs_is_empty() {
-        // All trailing empty lines stripped → empty body → zero bytes.
-        assert_eq!(canonicalize_body_relaxed(b"\r\n\r\n\r\n"), b"".to_vec());
+    fn body_only_crlfs_canonicalizes_to_single_crlf() {
+        // All trailing empty lines stripped, then the unconditional CRLF
+        // terminator is appended.
+        assert_eq!(canonicalize_body_relaxed(b"\r\n\r\n\r\n"), b"\r\n".to_vec());
     }
 
     #[test]
