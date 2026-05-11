@@ -7,9 +7,12 @@
 //!   - The cryptographic statement in SPEC.md §2 is the contract.
 //!
 //! Pure-function modules carry their own `#[cfg(test)]` unit tests:
-//!   * `canonical`: SPEC.md §4.3 relaxed/relaxed canonicalization
-//!   * `dkim`:      SPEC.md §4.1 + §4.2 header location, parse, assertions
-//!   * `body`:      SPEC.md §4.4 body SHA-256 verification
+//!   * `canonical`:  SPEC.md §4.3 relaxed/relaxed canonicalization
+//!   * `dkim`:       SPEC.md §4.1 + §4.2 header location, parse, assertions
+//!   * `body`:       SPEC.md §4.4 body SHA-256 verification
+//!   * `signed_set`: SPEC.md §4.5 canonicalized signed-header set
+//!   * `verify`:     SPEC.md §4.6 RSA-PKCS1v1.5-SHA256 verify
+//!   * `nullifier`:  SPEC.md §4.7 Poseidon-based replay nullifier
 //!
 //! Build with the RISC0 toolchain to produce a guest ELF; build natively
 //! (`cargo test`) to run those unit tests on the host architecture.
@@ -19,6 +22,9 @@
 mod body;
 mod canonical;
 mod dkim;
+mod nullifier;
+mod signed_set;
+mod verify;
 
 #[cfg(not(test))]
 risc0_zkvm::guest::entry!(main);
@@ -31,7 +37,7 @@ pub const DOMAIN_SEPARATOR_V0: &[u8] = b"0nce-v0-nullifier";
 
 #[cfg(not(test))]
 fn main() {
-    use nce_core::{PublicInputs, Witness};
+    use nce_core::{PublicInputs, PublicOutputs, Witness};
     use risc0_zkvm::guest::env;
 
     // Read inputs. The host writes witness then public inputs in this order;
@@ -52,22 +58,37 @@ fn main() {
     );
 
     // §4.4: SHA-256 of canonicalized body, assert == parsed.body_hash.
-    // The canonicalization (§4.3 body half) is invoked inside verify_body_hash.
+    // (Body canonicalization, §4.3 body half, runs inside verify_body_hash.)
     body::verify_body_hash(&witness.email_raw, &parsed.body_hash);
-    //
-    // TODO §4.5: construct canonicalized header set per parsed.signed_headers_raw,
-    //            append DKIM-Signature header with b= emptied (RFC 6376 §3.7).
-    //
-    // TODO §4.6: RSA-verify parsed.signature over SHA-256(header set) using
-    //            (public_inputs.claimed_pubkey_n, public_inputs.claimed_pubkey_e).
-    //            This is the expensive step.
-    //
-    // TODO §4.7: nullifier = Poseidon(DOMAIN_SEPARATOR_V0, claimed_domain,
-    //            parsed.signature). Commit via env::commit.
-    //
-    // TODO §4.8: commit claimed_domain via env::commit.
-    //
-    // Any assertion failure above => guest panics => no proof. Intended.
 
-    panic!("guest §4.3+ not implemented");
+    // §4.5: construct canonicalized header set with b= emptied. Uses
+    // canonical::canonicalize_header_relaxed internally (§4.3 header half).
+    let signed_data = signed_set::build_signed_data(
+        &witness.email_raw,
+        &parsed.signed_headers_raw,
+        parsed.header_start,
+        parsed.header_end,
+    );
+
+    // §4.6: RSA-PKCS1v1.5-SHA256 verify of the signature over signed_data.
+    // The expensive step.
+    verify::verify_rsa_signature(
+        &signed_data,
+        &parsed.signature,
+        &public_inputs.claimed_pubkey_n,
+        &public_inputs.claimed_pubkey_e,
+    );
+
+    // §4.7: nullifier = Poseidon(DOMAIN_SEPARATOR_V0, claimed_domain, signature).
+    let nullifier = nullifier::compute_nullifier(
+        DOMAIN_SEPARATOR_V0,
+        &public_inputs.claimed_domain,
+        &parsed.signature,
+    );
+
+    // §4.8: commit public outputs (claimed_domain echoed + nullifier).
+    env::commit(&PublicOutputs {
+        claimed_domain: public_inputs.claimed_domain,
+        nullifier,
+    });
 }
