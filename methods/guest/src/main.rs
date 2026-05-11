@@ -1,13 +1,20 @@
 //! Guest program — SPEC.md §4.
 //!
-//! This is currently a stub. Each numbered TODO below maps to a step in
-//! `SPEC.md` §4 and will be filled in *in order*. Per guardrails:
+//! Each numbered TODO below maps to a step in `SPEC.md` §4 and is filled in
+//! *in order*. Per guardrails:
 //!   - Implement only what SPEC.md describes. Ask before adding anything else.
 //!   - Stay under 500 lines, hand-readable (SPEC.md §9).
 //!   - The cryptographic statement in SPEC.md §2 is the contract.
+//!
+//! Pure-function modules (e.g. `canonical`) carry their own `#[cfg(test)]`
+//! unit tests. Build with the RISC0 toolchain to produce a guest ELF; build
+//! natively (`cargo test`) to run those unit tests on the host architecture.
 
-#![no_main]
+#![cfg_attr(not(test), no_main)]
 
+mod canonical;
+
+#[cfg(not(test))]
 risc0_zkvm::guest::entry!(main);
 
 /// Domain separator for the nullifier construction (SPEC.md §3, §4.7).
@@ -16,6 +23,7 @@ risc0_zkvm::guest::entry!(main);
 /// Poseidon. See SPEC.md §4.7.
 pub const DOMAIN_SEPARATOR_V0: &[u8] = b"0nce-v0-nullifier";
 
+#[cfg(not(test))]
 fn main() {
     // TODO §4.1: parse `email_raw` to locate the DKIM-Signature header at
     //            `dkim_header_index`. Assert the header starts with the exact
