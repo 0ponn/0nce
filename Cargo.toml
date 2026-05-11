@@ -1,9 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["host", "methods"]
+members = ["host", "methods", "core"]
 # Note: methods/guest is intentionally excluded from the workspace.
 # It is compiled separately by risc0-build (via methods/build.rs) using the
 # RISC0 RISC-V toolchain. See SPEC.md §4 for what the guest must do.
+#
+# `core` (package nce-core) holds the wire-format types shared between host
+# and guest. Living in the workspace means cargo test exercises it; the
+# guest reaches it via a path-dep from outside the workspace.
 
 [workspace.package]
 version = "0.0.0"

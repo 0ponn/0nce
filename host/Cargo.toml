@@ -10,3 +10,4 @@ path = "src/main.rs"
 [dependencies]
 risc0-zkvm = { version = "1" }
 methods = { path = "../methods" }
+nce-core = { path = "../core" }
