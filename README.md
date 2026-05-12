@@ -48,9 +48,47 @@ See `SPEC.md` §8 for what's deferred to v1.
 
 ## Build / run
 
-This section is intentionally empty — implementation is not done. See `SPEC.md` §4 for what the guest program must do, §5 for the host (prover side), and §6 for the verifier.
+Prerequisites: [`rzup`](https://dev.risczero.com/api/zkvm/install) for the RISC0 toolchain, Rust 1.91+ for the host (pinned in `rust-toolchain.toml`), and `dig` for DNS lookups of DKIM public keys (or use `--pubkey-tag` for offline mode).
 
-Prerequisites once implementation begins: [`rzup`](https://dev.risczero.com/api/zkvm/install) for the RISC0 toolchain, plus a stable Rust toolchain for the host.
+Build everything:
+
+```sh
+cargo build --release
+```
+
+Prove a DKIM-signed email:
+
+```sh
+cargo run --release --bin 0nce -- prove \
+  --email path/to/your.eml \
+  --out /tmp/your.proof.bin
+```
+
+The host extracts the DKIM-Signature header, looks up the signer's public key via `dig +short TXT <selector>._domainkey.<domain>`, prompts you to confirm the key (since the v0 design treats the pubkey as out-of-trust-boundary, see §6 step 2 weakness above), and runs the zkVM prover. Pass `-y` to skip the confirmation prompt, or `--pubkey-tag "v=DKIM1; ..."` to supply the TXT record directly without DNS.
+
+Verify a proof:
+
+```sh
+cargo run --release --bin 0nce -- verify \
+  --proof /tmp/your.proof.bin \
+  --nullifier-store ~/.0nce/nullifiers.txt
+```
+
+Replay protection: each accepted proof appends its nullifier to the store; resubmission of the same proof against the same store is rejected.
+
+### Running the test suite
+
+```sh
+cargo test                          # workspace + host unit + integration
+RISC0_DEV_MODE=1 cargo test         # use the dev-mode prover for fast iteration
+cd methods/guest && cargo test      # guest crate unit tests
+```
+
+A real DKIM-signed test fixture lives at `host/tests/fixtures/real.eml` with the matching DKIM TXT record at `host/tests/fixtures/real.pubkey.tag`. The `host/tests/{must_pass,adversarial}.rs` integration tests exercise the full prove → verify CLI flow under `RISC0_DEV_MODE=1`.
+
+### Benchmarking
+
+See `BENCHMARKS.md` for the §9 prove-time / proof-size measurement recipe.
 
 ## Definition of done for v0
 
