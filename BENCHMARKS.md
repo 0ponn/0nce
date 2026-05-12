@@ -30,15 +30,30 @@ pipeline works without paying the STARK prove cost.
 
 ## Recorded results
 
-| date | host | risc0-zkvm | mode  | prove wall-clock | proof.bin size | verify wall-clock |
-|------|------|------------|-------|------------------|----------------|-------------------|
-| TBD  | TBD  | 3.x        | prod  | TBD              | TBD            | TBD               |
-| TBD  | TBD  | 3.x        | dev   | < 1s             | TBD            | < 1s              |
+| date       | host                                                | risc0-zkvm | mode | prove wall-clock | proof.bin size       | verify wall-clock |
+|------------|-----------------------------------------------------|------------|------|------------------|----------------------|-------------------|
+| 2026-05-12 | Intel Core Ultra 7 155H (11C / 22T), 32 GB, Fedora 44 | 3.0.5      | prod | 50:55.69         | 3,938,908 B (3.76 MB) | 0.21 s            |
+
+Prove run details (from `/usr/bin/time -v`):
+
+- CPU time: 62,577 s user + 60 s system = ~62,637 s across all cores
+- Effective parallelism: 2,049 % of one core (~20.5 cores hot for ~51 min wall clock)
+- Peak RSS: 9.4 GB (9,614,640 KB)
+- Email proven: `host/tests/fixtures/real.eml` (6,708 bytes, Gmail-signed by visionaryauto.ai)
+- Committed nullifier: `20939a2deaf4f262356c519eed580641dddf2f72d5e527a75fd3a7b3ce3bc27b`
 
 ## Notes
 
 - Dev mode (`RISC0_DEV_MODE=1`) produces fake receipts; numbers there
-  are meaningless for the spec deliverable. Use the prod (default) row.
-- Optimization knobs not adopted in v0: the RISC0 `sha2` accelerator
-  patch and the bigint accelerator patch for `rsa` / `num-bigint`.
-  Both are documented in `methods/guest/Cargo.toml` as v1 candidates.
+  are meaningless for the spec deliverable. Use the prod row above.
+- The ~51-minute prove time on a 22-thread laptop CPU is the cost of
+  doing RSA-2048 + SHA-256 + RFC 6376 canonicalization inside a STARK
+  WITHOUT the RISC0 accelerator patches. Two patches are the obvious
+  v1 prove-time levers, each documented in `methods/guest/Cargo.toml`:
+    - `sha2` accelerator patch (RISC0's fork of RustCrypto/hashes).
+    - `rsa` / `num-bigint` bigint accelerator patch (RISC0's bigint2
+      syscalls, accessed via the patched num-bigint).
+  These typically deliver an order of magnitude or more on prove time
+  for this workload shape.
+- Verify is ~210 ms with peak ~13 MB RSS; the STARK verifier is small
+  and amortizes the proof artifact's cost completely.
