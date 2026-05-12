@@ -22,6 +22,12 @@ pub struct ProveArgs<'a> {
     pub out_path: &'a Path,
     pub pubkey_tag_override: Option<&'a str>,
     pub assume_yes: bool,
+    /// Adversarial-test hook: replace the claimed_domain public input
+    /// with these bytes. Normally the CLI uses parsed.domain from the
+    /// DKIM-Signature's d= tag. SPEC.md §7 adversarial #1 / #2 / must-
+    /// pass #3 set this to inject a mismatch and exercise the guest's
+    /// soundness-critical `d == claimed_domain` assertion.
+    pub claimed_domain_override: Option<&'a str>,
 }
 
 pub fn run(args: ProveArgs) -> Result<()> {
@@ -63,8 +69,15 @@ pub fn run(args: ProveArgs) -> Result<()> {
         signature: parsed.signature_b64,
         body_hash: parsed.body_hash_b64,
     };
+    let claimed_domain = match args.claimed_domain_override {
+        Some(s) => {
+            eprintln!("  claimed_domain: OVERRIDDEN (--claimed-domain {}), expect d != claimed_domain panic in guest", s);
+            s.as_bytes().to_vec()
+        }
+        None => parsed.domain,
+    };
     let public_inputs = PublicInputs {
-        claimed_domain: parsed.domain,
+        claimed_domain,
         claimed_pubkey_n: pubkey.n,
         claimed_pubkey_e: pubkey.e,
     };

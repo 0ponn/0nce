@@ -40,6 +40,13 @@ enum Cmd {
         /// Skip the interactive pubkey-confirmation prompt.
         #[arg(long, short = 'y')]
         yes: bool,
+
+        /// Override the claimed_domain public input. Normally the CLI uses
+        /// the d= tag from the email's DKIM-Signature header; this flag
+        /// lets the SPEC.md §7 adversarial tests inject a mismatch to
+        /// exercise the soundness-critical `d == claimed_domain` assertion.
+        #[arg(long)]
+        claimed_domain: Option<String>,
     },
     /// Verify a proof artifact and check its nullifier against the local store.
     Verify {
@@ -56,7 +63,7 @@ enum Cmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
-        Cmd::Prove { email, out, pubkey_tag, yes } => {
+        Cmd::Prove { email, out, pubkey_tag, yes, claimed_domain } => {
             let out_path = out.unwrap_or_else(|| {
                 let mut p = email.clone();
                 let stem = p.file_stem().map(|s| s.to_owned()).unwrap_or_default();
@@ -72,6 +79,7 @@ fn main() -> Result<()> {
                 out_path: &out_path,
                 pubkey_tag_override: pubkey_tag.as_deref(),
                 assume_yes: yes,
+                claimed_domain_override: claimed_domain.as_deref(),
             })
         }
         Cmd::Verify { proof, nullifier_store } => {
