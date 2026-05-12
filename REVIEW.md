@@ -2,8 +2,8 @@
 
 SPEC.md §9 asks a second reviewer to confirm with their own eyes that the guest proves the §2 statement. The test suite (`cargo test`: 76 passing, 1 deferred fixture) covers correctness in depth. The hand-review's job is just to look at the load-bearing pieces.
 
-**Reviewed:** _name and date when done_
-**Commit:** _short hash of `main` at review time_
+**Reviewed:** Michael Layug, 2026-05-12
+**Commit:** c6c58ca
 
 ## The statement (SPEC.md §2 verbatim)
 
@@ -45,8 +45,8 @@ _If anything looked off, file:line and a one-line description. Otherwise: `(none
 
 ## Sign-off
 
-Reviewer: ______________________
-Date: ______________________
-Commit hash: ______________________
+Reviewer: Michael Layug
+Date: 2026-05-12
+Commit hash: c6c58ca
 
 I confirm the five load-bearing pieces above match SPEC.md §2, modulo the findings.
