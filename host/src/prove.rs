@@ -28,14 +28,26 @@ pub struct ProveArgs<'a> {
     /// pass #3 set this to inject a mismatch and exercise the guest's
     /// soundness-critical `d == claimed_domain` assertion.
     pub claimed_domain_override: Option<&'a str>,
+    /// Adversarial-test hook: point dkim_header_index at this byte offset
+    /// instead of the first DKIM-Signature email::extract would find.
+    /// SPEC.md §7 adversarial #3 uses this to point at a planted second
+    /// header and verify v0 considers only the witnessed one.
+    pub dkim_header_offset_override: Option<u32>,
 }
 
 pub fn run(args: ProveArgs) -> Result<()> {
     let email_raw = fs::read(args.email_path)
         .with_context(|| format!("reading email {}", args.email_path.display()))?;
 
-    let parsed = email::extract(&email_raw)
-        .context("extracting DKIM-Signature fields from email")?;
+    let parsed = match args.dkim_header_offset_override {
+        Some(off) => {
+            eprintln!("  dkim_header_offset: OVERRIDDEN ({})", off);
+            email::extract_at(&email_raw, off as usize)
+                .context("extracting DKIM-Signature fields at overridden offset")?
+        }
+        None => email::extract(&email_raw)
+            .context("extracting DKIM-Signature fields from email")?,
+    };
 
     let domain_str = std::str::from_utf8(&parsed.domain)?;
     let selector_str = std::str::from_utf8(&parsed.selector)?;

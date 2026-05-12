@@ -47,6 +47,14 @@ enum Cmd {
         /// exercise the soundness-critical `d == claimed_domain` assertion.
         #[arg(long)]
         claimed_domain: Option<String>,
+
+        /// Override dkim_header_index. Normally the CLI uses the byte
+        /// offset of the first DKIM-Signature in the email; this flag
+        /// lets the SPEC.md §7 adversarial #3 test point at a planted
+        /// second DKIM-Signature header and confirm v0 considers only
+        /// the witnessed one.
+        #[arg(long)]
+        dkim_header_offset: Option<u32>,
     },
     /// Verify a proof artifact and check its nullifier against the local store.
     Verify {
@@ -63,7 +71,7 @@ enum Cmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
-        Cmd::Prove { email, out, pubkey_tag, yes, claimed_domain } => {
+        Cmd::Prove { email, out, pubkey_tag, yes, claimed_domain, dkim_header_offset } => {
             let out_path = out.unwrap_or_else(|| {
                 let mut p = email.clone();
                 let stem = p.file_stem().map(|s| s.to_owned()).unwrap_or_default();
@@ -80,6 +88,7 @@ fn main() -> Result<()> {
                 pubkey_tag_override: pubkey_tag.as_deref(),
                 assume_yes: yes,
                 claimed_domain_override: claimed_domain.as_deref(),
+                dkim_header_offset_override: dkim_header_offset,
             })
         }
         Cmd::Verify { proof, nullifier_store } => {

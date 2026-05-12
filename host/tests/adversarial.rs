@@ -119,19 +119,50 @@ fn prover_forges_dkim_with_own_key_claims_different_domain_must_fail() {
 }
 
 #[test]
-#[ignore = "needs offset-override CLI flag to test pointing dkim_header_index at a planted second DKIM-Signature; current CLI always uses email::extract's first match"]
 fn email_with_two_dkim_signature_headers_only_indexed_one_considered() {
     // SPEC.md §7 adversarial #3:
     //   "Prover supplies an email with TWO DKIM-Signature headers, one
-    //    valid and one for the claimed domain → must not be exploitable.
-    //    v0 behavior: only the header at dkim_header_index is considered."
+    //    valid and one for the claimed domain. Must not be exploitable.
+    //    v0 behavior: only the header at dkim_header_index is considered;
+    //    if it is not the claimed domain, fail."
     //
-    // Truly testing this requires the CLI to accept an offset override so
-    // we can point dkim_header_index at the planted second header. The
-    // host's email::extract always picks the first DKIM-Signature.
-    // Tracking as a follow-up; the underlying behavior (guest reads ONE
-    // header from a witnessed offset) is unit-tested in dkim.rs.
-    unimplemented!("SPEC.md §7 adversarial #3");
+    // Construction: prepend a FAKE DKIM-Signature header to the real .eml.
+    // The fake declares d=visionaryauto.ai (so the §4.2 d-match passes)
+    // and a bh of all-zeros (so the §4.4 body hash check will fail).
+    // Point --dkim-header-offset at the fake (offset 0). The guest must
+    // process the fake header, not magically pick the real one below it.
+    let tmp = tempfile::tempdir().unwrap();
+    let planted = tmp.path().join("two_dkim.eml");
+    let proof = tmp.path().join("p.bin");
+    let tag = pubkey_tag();
+
+    // bh value: base64 of 32 zero bytes. The SHA-256 of the real body
+    // will not match, so the guest panics at §4.4.
+    let fake_bh = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    // b= value: 4 'A's is valid base64 (3 zero bytes). We don't reach
+    // RSA verify because §4.4 fails first.
+    let fake_b = "AAAA";
+    let fake_header = format!(
+        "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; \
+         d=visionaryauto.ai; s=google; h=From; bh={fake_bh}; b={fake_b}\r\n"
+    );
+
+    let mut bytes = fake_header.into_bytes();
+    bytes.extend_from_slice(&std::fs::read(fixture("real.eml")).unwrap());
+    std::fs::write(&planted, &bytes).unwrap();
+
+    let (ok, _out, err) = run_prove(
+        &planted,
+        &proof,
+        &tag,
+        &["--dkim-header-offset", "0"],
+    );
+    assert!(!ok, "prove succeeded; the guest may not be honoring dkim_header_index");
+    assert!(
+        err.contains("computed body hash does not match bh"),
+        "expected body-hash mismatch from the planted fake header; got:\n{}",
+        err
+    );
 }
 
 #[test]

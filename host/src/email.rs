@@ -23,9 +23,32 @@ pub struct ExtractedFields {
     pub body_hash_b64: Vec<u8>,
 }
 
+/// Auto-locate the first DKIM-Signature header and extract its fields.
 pub fn extract(email_raw: &[u8]) -> Result<ExtractedFields> {
     let header_index = find_dkim_signature(email_raw)
         .context("no DKIM-Signature header found in email")?;
+    extract_at_index(email_raw, header_index)
+}
+
+/// Extract DKIM-Signature fields from a caller-supplied byte offset.
+/// Used by the SPEC.md §7 adversarial #3 path to point at a planted
+/// second DKIM-Signature header.
+pub fn extract_at(email_raw: &[u8], header_index: usize) -> Result<ExtractedFields> {
+    if header_index + HEADER_NAME.len() > email_raw.len() {
+        bail!("dkim_header_offset out of bounds");
+    }
+    let prefix = &email_raw[header_index..header_index + HEADER_NAME.len()];
+    if !prefix
+        .iter()
+        .zip(HEADER_NAME)
+        .all(|(a, b)| a.eq_ignore_ascii_case(b))
+    {
+        bail!("bytes at dkim_header_offset are not 'DKIM-Signature:'");
+    }
+    extract_at_index(email_raw, header_index)
+}
+
+fn extract_at_index(email_raw: &[u8], header_index: usize) -> Result<ExtractedFields> {
     let value_start = header_index + HEADER_NAME.len();
     let header_end = find_header_end(email_raw, value_start);
     let value_end = if header_end >= 2 && &email_raw[header_end - 2..header_end] == b"\r\n" {
