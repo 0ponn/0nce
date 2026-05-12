@@ -8,7 +8,7 @@ name = "0nce"
 path = "src/main.rs"
 
 [dependencies]
-risc0-zkvm = { version = "1" }
+risc0-zkvm = { version = "3" }
 methods = { path = "../methods" }
 nce-core = { path = "../core" }
 clap = { version = "4", features = ["derive"] }
@@ -20,3 +20,6 @@ anyhow = "1"
 # DNS clients (hickory, etc.) pull tokio; for a single TXT lookup the
 # subprocess is far simpler and per SPEC.md §6 step 2 the pubkey is
 # already out of the trust boundary.
+
+[dev-dependencies]
+tempfile = "3"

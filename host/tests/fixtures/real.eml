@@ -1,0 +1,114 @@
+Delivered-To: mike@0pon.com
+Received: by 2002:a05:7108:52c1:b0:56c:7125:7e71 with SMTP id i1csp299584gdm;
+        Tue, 12 May 2026 03:23:47 -0700 (PDT)
+X-Received: by 2002:a05:7301:7211:b0:2ea:5057:a331 with SMTP id 5a478bee46e88-2fb4d68f3a5mr6863287eec.21.1778581427430;
+        Tue, 12 May 2026 03:23:47 -0700 (PDT)
+ARC-Seal: i=2; a=rsa-sha256; t=1778581427; cv=pass;
+        d=google.com; s=arc-20240605;
+        b=YTOCtRYh1a4am3l248+1Gd1QQMSsKFqmJoU/1MGwRpe0srnnmo/cOTYdigB0QO16dD
+         6aD7Qq+5sEVTwzWO7VAntFViZeFnZfj0ZCI1UFDiqIv9tcEk+XGs1i0FKMn7hbHDZN+u
+         a/nbfr39bXEvSbS9jB8JE+qWCunT89nJmlD1yZC5FMyJ4HVv080/FqeV0W1XWMSmqzyq
+         /zGgkcWcNIMLvK+DUFJ2P/Fwo+HXqsIVdKI6BdgB+eIFMFjBzPzCyULkvd91OTtkGskM
+         qRAcZrZWa1RWkweU2zOjO34xjc7E8YofvXr7rhRd8yC0t/yuNVTtJMhgiyKa2RrCoE6M
+         /Oww==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:mime-version:dkim-signature;
+        bh=VsR3tiQPqj145V46cWopD6S08XBLWYAQWTUFL23LRt0=;
+        fh=kVu2n1jIgDjw5DFDqXTDKek+U83fkmFnan9cKHQXknw=;
+        b=cbZCtzkbUJV7Nhy6TXCf7irY3zJ2CC/zzO0ATJ6rXoOF5DIPct+MNgtWc/rsCDqluV
+         7TOi3KmgGiyz5MlnxW4KRHthAzlihLyaR6u826D1x8f65BrUXk3T9l2VQn5bQkub9ioD
+         HHQVUTUP0y65KEiSFBWnX8Gyf9wacTN6/bbHEGeltvPNpMwW4jp9BRuMIUmaU8R2oDWC
+         JIwii1jgWzac4++cbBdlh1dEuVO/zjO6U3lc8rMbIYfOXNU92TA56jUoiaJwQxbZZqWP
+         QlgjE4X5EcA+9Vn5YXE9x3iZ/ZRcGv+lJTbFgxYfluqCp/PJGRWPVK+K8ChjRI1g2M8k
+         klNA==;
+        dara=google.com
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@visionaryauto.ai header.s=google header.b="GwdLg/QF";
+       arc=pass (i=1);
+       spf=none (google.com: mlayug@visionaryauto.ai does not designate permitted sender hosts) smtp.mailfrom=mlayug@visionaryauto.ai;
+       dara=neutral header.i=@0pon.com
+Return-Path: <mlayug@visionaryauto.ai>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id 5a478bee46e88-2f889347024sor2734587eec.22.2026.05.12.03.23.47
+        for <mike@0pon.com>
+        (Google Transport Security);
+        Tue, 12 May 2026 03:23:47 -0700 (PDT)
+Received-SPF: none (google.com: mlayug@visionaryauto.ai does not designate permitted sender hosts) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@visionaryauto.ai header.s=google header.b="GwdLg/QF";
+       arc=pass (i=1);
+       spf=none (google.com: mlayug@visionaryauto.ai does not designate permitted sender hosts) smtp.mailfrom=mlayug@visionaryauto.ai;
+       dara=neutral header.i=@0pon.com
+ARC-Seal: i=1; a=rsa-sha256; t=1778581426; cv=none;
+        d=google.com; s=arc-20240605;
+        b=gI2DU405tnSwCz/6OZrOy8tCNO0AAIYBGJ1pLKav3UCTDMCMBua3b13+B3uxjxNNX3
+         eqGMb+qKSDAwEjTm17wR1PJgqylkDT+JQF5TWpuyknXMSDsTVhPC8Am9oLvYBwB8py1p
+         IBXGNe7b66udNoqIPtpfGbN6gsxY4x5ZpPdWF9KWqqKvwjdsdp+oYJ4yRzuoVdkYjivb
+         eeSSzo93DLhtZUrRHFeDDQ494o41WH63fhXH3lRLkXpXjwU1Xex1EPZi7kYNB6VQ9/qh
+         fJzIptm2r+usD+Kko4ZTTCyFgTM3SYR9ZazapE7g5/w7OZvzPv/qYph2tEpSD5kvtxlF
+         aI1g==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:subject:message-id:date:from:mime-version:dkim-signature;
+        bh=VsR3tiQPqj145V46cWopD6S08XBLWYAQWTUFL23LRt0=;
+        fh=kVu2n1jIgDjw5DFDqXTDKek+U83fkmFnan9cKHQXknw=;
+        b=YZkknlVhNjToF3h6nvY5xc390WM+2lPiN3bFuYaMuwa8famKqcPydSPgnLCJtcG9r0
+         Dx2HBqKdDbX671RU0D/rCnf+Yl3McDBB4JpuQ+OV3JdTqxCu6krlFLuLCtgy4hjjGovJ
+         BvhxCWaOy7uXJCbSMOqsf4AMWZqf+WbqUrp9qGxv+BNEMzCH83NAbK+3MMFp4DcedssE
+         73cb+ZsYrExuxt/XAOuXlgha3HiZlYnsvRe9W55UIjVvGyoYfbUOVzdNEAz7SqsxTPN7
+         iRU9zOc0DPMvsREymnnDoA0839k91Cz4tQ8e/l1Y46LGv18PfvzRfFdgj3zAQpSe3rYH
+         eQfA==;
+        darn=0pon.com
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=visionaryauto.ai; s=google; t=1778581426; x=1779186226; darn=0pon.com;
+        h=to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=VsR3tiQPqj145V46cWopD6S08XBLWYAQWTUFL23LRt0=;
+        b=GwdLg/QFs4ddERWLsvispXvtgDPdERUqKBpNsAsOiNrv1V/3/d2/wUTmQK2Xs7y3do
+         ysgxXn3p/lfCJBf+cv317/jXhownoLrYaGt87Xcr0mc2PuU7uIFMNsBE7Zj27LbqAoHh
+         nrXAMWlgl0GV9GmTfadyhq5oDUrNWAmKrH/25ZrN/ZfZWTU/sMyZ11M7webMgTYoYBw5
+         /vMg7PIyOIkyIIYE+FAwQQ+kR/kfV6cWh5I7f9qnXH1rrk7A1wyEZfNwBFjJWA8MWQiZ
+         NN9Kqz2LjLvcbyvZbuUffds0VbUnslLt0IKzzUbQhgq6x/c1MOWUA0yqb+gDecUoPWdx
+         fI/A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778581426; x=1779186226;
+        h=to:subject:message-id:date:from:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=VsR3tiQPqj145V46cWopD6S08XBLWYAQWTUFL23LRt0=;
+        b=Pja9aBL4TGX7d4/QhZeEwDxs0cyC+M7Itt5dARIfK3b6qGLHtgXsq+Nq+CvSKjZW0W
+         If0sxF64ztHwKDrVpvKBI996cbalZ+Bp2BzVXiJZwu5hZxGazyE/q5/XAbwCC3/Fq6hl
+         ntrhIQP25n6xFI97vJKdyQyiIM1sTtOt5Iox5z8HIWekpxD3bLYxfsWPqjZuoLM0R44h
+         ri7uRRO+7wQVTkeenzBes1s6W7w5XcRyPv8K66ByStDMzBF/APF93vFIWKbVfcZB5do1
+         wgm1z/zMYMz8zzAZHkrTq8aiJ68z3FvBwkn+jTGQLjL0RmJCxmSejjxh1cC43JWP0maS
+         cvrg==
+X-Gm-Message-State: AOJu0Yz5M2xanOEDdrYXHE57367AxpYYrm2t4TNftgOwGK4PSTrX6/oQ
+	MAFxfiPYa0wbFS6QEaPs6ikstl6FBL1UoZOzFETsbKgS2aCmk3j4P4E7C5Dz4Jfj9pgMvbXEvZr
+	g4p/ELT14GIZhOLpYUNRyh341XUOtMmRjYhcXTqzkY4DExuRkQgkxXy0d
+X-Gm-Gg: Acq92OEU5qGU07unZion6Tl8K5qdNei01+/SoZ54EwVmv+5jk8+CY3Mo/jemi2eUyLM
+	2AlEwoQlGeiwdTFQNUsV33uA7nrZjnjM8xM13dN5DEsUxNcfwxaecSBggyZWaC+VMGc7RGlDHDB
+	sQ14IGAXfHuExEhHA55smQH+Sb+KU1+P2y2ln4bHzNA5MZFCP1A23X9OW9ca7G/kP0v4gXjAI+y
+	Nbg+Ymu2DIFq5PwxYLIpyhOVSPGNje8Mj2xK+uawqIzcQqDiXOX+63lsPrX+PR9l27ewKt2N+mD
+	mikl
+X-Received: by 2002:a05:7022:222:b0:132:1e79:9c55 with SMTP id
+ a92af1059eb24-132a84f8b05mr7575641c88.31.1778581426348; Tue, 12 May 2026
+ 03:23:46 -0700 (PDT)
+MIME-Version: 1.0
+From: Michael Layug <mlayug@visionaryauto.ai>
+Date: Tue, 12 May 2026 06:23:35 -0400
+X-Gm-Features: AVHnY4IBEQLRSHJ4cJx-VMKrqaLwU_o8Su1epnWV71o7s_E3pXM0-CK9oIeEcHM
+Message-ID: <CAH0aVw2r0sJmeB1rRg0_VzxWMDDBetGziPh7ZwdF-a=Pn=LLWA@mail.gmail.com>
+Subject: Test
+To: "mike@0pon.com" <mike@0pon.com>
+Content-Type: multipart/alternative; boundary="0000000000001f331d06519c42ec"
+
+--0000000000001f331d06519c42ec
+Content-Type: text/plain; charset="UTF-8"
+
+Test
+
+--0000000000001f331d06519c42ec
+Content-Type: text/html; charset="UTF-8"
+
+<div dir="ltr">Test</div>
+
+--0000000000001f331d06519c42ec--

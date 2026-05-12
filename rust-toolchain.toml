@@ -1,4 +1,6 @@
 [toolchain]
-channel = "stable"
+channel = "1.91"
+# Pinned to 1.91 because risc0-zkvm 3.x transitively pulls ruint 1.18.0
+# which requires rustc >= 1.90.
 # The RISC0 guest uses a separate RISC-V toolchain managed by `rzup`.
 # Install: https://dev.risczero.com/api/zkvm/install

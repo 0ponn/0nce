@@ -13,7 +13,8 @@
 //!   2. Append the canonicalized DKIM-Signature header with the `b=` tag
 //!      value emptied and NO trailing CRLF (§3.7 and §5.4 step 2).
 
-use crate::bytes_util::{bytes_eq_case_insensitive, strip_trailing_crlf, trim_wsp};
+use crate::body;
+use crate::bytes_util::{bytes_eq_case_insensitive, strip_trailing_crlf, trim_wsp_crlf};
 use crate::canonical;
 
 /// SPEC.md §4 step 5. Returns the bytes that get SHA-256'd in §4.6.
@@ -25,33 +26,55 @@ pub fn build_signed_data(
 ) -> Vec<u8> {
     let mut output = Vec::new();
 
-    // Per §5.4.2 the verifier consumes occurrences top-to-bottom; we look
-    // only at headers above DKIM-Signature so an attacker cannot inject a
-    // duplicate header below it and influence the signed set.
-    let headers_above = &email[..dkim_header_start];
+    // RFC 6376 §5.4 says verifier consumes occurrences of each h= name
+    // top-to-bottom across the FULL header block, treating missing
+    // occurrences as null strings. In practice real-world DKIM signers
+    // (Gmail tested here) and verifiers (dkimpy) instead search
+    // bottom-to-top with a per-name lastindex cursor, and SKIP missing
+    // occurrences rather than emitting empty `name:\r\n` placeholders.
+    // Match real-world behavior so we can actually verify real emails;
+    // the soundness story is unchanged because oversigning still works
+    // (the signer just doesn't emit empty rows for missing names).
+    let body_start = body::find_body_start(email);
+    let headers = parse_headers(&email[..body_start]);
 
+    // h= can be folded across lines, leaving CRLF + WSP inside a split piece.
     let names: Vec<&[u8]> = h_tag_value
         .split(|&c| c == b':')
-        .map(trim_wsp)
+        .map(trim_wsp_crlf)
         .filter(|n| !n.is_empty())
         .collect();
 
-    // Track how many of each name we've already consumed. h= typically has
-    // 5..10 names; a linear scan beats a HashMap for both readability and
-    // line count.
-    let mut counts: Vec<(Vec<u8>, usize)> = Vec::new();
-
-    for name in &names {
-        let lc: Vec<u8> = name.iter().map(|b| b.to_ascii_lowercase()).collect();
-        let n = counts.iter().find(|(k, _)| *k == lc).map(|(_, v)| *v).unwrap_or(0);
-        let value = find_nth_header_value(headers_above, name, n).unwrap_or(&[]);
-        let canonicalized = canonical::canonicalize_header_relaxed(name, value);
-        output.extend_from_slice(&canonicalized);
-        if let Some(entry) = counts.iter_mut().find(|(k, _)| *k == lc) {
-            entry.1 += 1;
-        } else {
-            counts.push((lc, 1));
+    // dkimpy-style: for each name in h=, scan headers from `lastindex[name]`
+    // (default = headers.len()) downward, find the first match, append, and
+    // update lastindex to the matched position.
+    let mut last_index: Vec<(Vec<u8>, usize)> = Vec::new();
+    for include_name in &names {
+        let lc: Vec<u8> = include_name.iter().map(|b| b.to_ascii_lowercase()).collect();
+        let mut i = last_index
+            .iter()
+            .find(|(k, _)| *k == lc)
+            .map(|(_, v)| *v)
+            .unwrap_or(headers.len());
+        let mut matched: Option<usize> = None;
+        while i > 0 {
+            i -= 1;
+            if bytes_eq_case_insensitive(headers[i].name, include_name) {
+                matched = Some(i);
+                break;
+            }
         }
+        if let Some(idx) = matched {
+            let h = &headers[idx];
+            let canonicalized = canonical::canonicalize_header_relaxed(h.name, h.value);
+            output.extend_from_slice(&canonicalized);
+            if let Some(entry) = last_index.iter_mut().find(|(k, _)| *k == lc) {
+                entry.1 = idx;
+            } else {
+                last_index.push((lc, idx));
+            }
+        }
+        // If no match, skip (NOT emit empty). Matches dkimpy and real signers.
     }
 
     // Append the DKIM-Signature header with b= emptied, no trailing CRLF.
@@ -67,37 +90,36 @@ pub fn build_signed_data(
 
 // -- helpers ---------------------------------------------------------------
 
-/// Return the value bytes of the `n`-th (0-indexed) occurrence of a header
-/// named `name` (case-insensitive) in `headers_block`. Value is the bytes
-/// after the colon, before the trailing CRLF, with internal continuation
-/// CRLFs preserved (canonicalization handles them).
-fn find_nth_header_value<'a>(
-    headers_block: &'a [u8],
-    name: &[u8],
-    n: usize,
-) -> Option<&'a [u8]> {
-    let mut found = 0;
+/// One parsed header from the message header block: name (case preserved)
+/// and value (no leading WSP unstripped, no trailing CRLF; continuation
+/// CRLF+WSP preserved so the canonicalizer unfolds them).
+struct ParsedHeader<'a> {
+    name: &'a [u8],
+    value: &'a [u8],
+}
+
+/// Parse the header block into individual headers in message order.
+fn parse_headers(headers_block: &[u8]) -> Vec<ParsedHeader<'_>> {
+    let mut out = Vec::new();
     let mut i = 0;
     while i < headers_block.len() {
         let line_end = find_field_end(headers_block, i);
         if let Some(c) = headers_block[i..line_end].iter().position(|&b| b == b':') {
-            let this_name = &headers_block[i..i + c];
-            if bytes_eq_case_insensitive(this_name, name) {
-                if found == n {
-                    let value_start = i + c + 1;
-                    let value_end = if line_end >= 2 && &headers_block[line_end - 2..line_end] == b"\r\n" {
-                        line_end - 2
-                    } else {
-                        line_end
-                    };
-                    return Some(&headers_block[value_start..value_end]);
-                }
-                found += 1;
-            }
+            let name = &headers_block[i..i + c];
+            let value_start = i + c + 1;
+            let value_end = if line_end >= 2 && &headers_block[line_end - 2..line_end] == b"\r\n" {
+                line_end - 2
+            } else {
+                line_end
+            };
+            out.push(ParsedHeader {
+                name,
+                value: &headers_block[value_start..value_end],
+            });
         }
         i = line_end;
     }
-    None
+    out
 }
 
 /// RFC 5322 header bound: end of header = CRLF not followed by WSP, or EOF.
@@ -149,7 +171,7 @@ fn null_b_tag(canonicalized: &[u8]) -> Vec<u8> {
             out.push(b';');
         }
         if let Some(eq) = piece.iter().position(|&c| c == b'=') {
-            let tag_name = trim_wsp(&piece[..eq]);
+            let tag_name = trim_wsp_crlf(&piece[..eq]);
             if tag_name == b"b" {
                 out.extend_from_slice(&piece[..=eq]);
                 // value dropped
@@ -214,9 +236,11 @@ d=example.com; s=sel; h=From; bh=xx; b=";
     }
 
     #[test]
-    fn missing_header_in_h_tag_is_empty() {
-        // h= names a header that doesn't appear in the email — RFC 6376 says
-        // treat as empty.
+    fn missing_header_in_h_tag_is_skipped() {
+        // dkimpy-style: a name in h= that doesn't match any header is SKIPPED,
+        // not emitted as empty. Matches real-world signers (Gmail, etc.).
+        // RFC 6376 §5.4 text says "treat as null string" but the practical
+        // convention diverges.
         let (email, ds, de) = make_email(
             b"From: a@b\r\n",
             b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; \
@@ -225,13 +249,15 @@ d=example.com; s=sel; h=From; bh=xx; b=";
         );
         let out = build_signed_data(&email, b"From:Date", ds, de);
         let s = std::str::from_utf8(&out).unwrap();
-        // "from:a@b\r\n" then "date:\r\n" then DKIM-Signature
-        assert!(s.starts_with("from:a@b\r\ndate:\r\n"));
+        // "from:a@b\r\n" then directly DKIM-Signature (no "date:\r\n" inserted).
+        assert!(s.starts_with("from:a@b\r\ndkim-signature:"), "got: {:?}", &s[..s.len().min(60)]);
     }
 
     #[test]
-    fn multiple_occurrences_top_to_bottom() {
-        // Two From headers; h=From:From should pick first, then second.
+    fn multiple_occurrences_bottom_to_top() {
+        // dkimpy convention: with two From headers and h=From:From, the FIRST
+        // mention in h= picks the LAST occurrence in the message (bottom), the
+        // SECOND mention picks the one above it. Matches dkimpy's select_headers.
         let (email, ds, de) = make_email(
             b"From: first@x\r\nFrom: second@y\r\n",
             b"DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; \
@@ -240,7 +266,7 @@ d=example.com; s=sel; h=From; bh=xx; b=";
         );
         let out = build_signed_data(&email, b"From:From", ds, de);
         let s = std::str::from_utf8(&out).unwrap();
-        assert!(s.starts_with("from:first@x\r\nfrom:second@y\r\n"));
+        assert!(s.starts_with("from:second@y\r\nfrom:first@x\r\n"));
     }
 
     #[test]
@@ -290,25 +316,14 @@ d=example.com; s=sel; h=From; bh=xx; b=";
     }
 
     #[test]
-    fn find_nth_header_value_zeroth() {
+    fn parse_headers_extracts_name_and_value() {
         let block = b"From: alice@x\r\nTo: bob@y\r\n";
-        let v = find_nth_header_value(block, b"From", 0).unwrap();
-        assert_eq!(v, b" alice@x");
-    }
-
-    #[test]
-    fn find_nth_header_value_missing() {
-        let block = b"From: alice@x\r\n";
-        assert!(find_nth_header_value(block, b"Subject", 0).is_none());
-    }
-
-    #[test]
-    fn find_nth_header_value_first_occurrence_of_two() {
-        let block = b"From: a@x\r\nFrom: b@y\r\n";
-        let v0 = find_nth_header_value(block, b"From", 0).unwrap();
-        let v1 = find_nth_header_value(block, b"From", 1).unwrap();
-        assert_eq!(v0, b" a@x");
-        assert_eq!(v1, b" b@y");
+        let h = parse_headers(block);
+        assert_eq!(h.len(), 2);
+        assert_eq!(h[0].name, b"From");
+        assert_eq!(h[0].value, b" alice@x");
+        assert_eq!(h[1].name, b"To");
+        assert_eq!(h[1].value, b" bob@y");
     }
 
     #[test]
