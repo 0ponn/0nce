@@ -10,6 +10,25 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Which identity header the prover discloses in v1. See the v1 design doc
+/// §4. Public input — the verifier knows which header was revealed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HeaderKind {
+    From,
+    To,
+}
+
+impl HeaderKind {
+    /// Lowercased header field name, for case-insensitive matching against
+    /// the `h=` tag and the message header block.
+    pub fn header_name(self) -> &'static [u8] {
+        match self {
+            HeaderKind::From => b"from",
+            HeaderKind::To => b"to",
+        }
+    }
+}
+
 /// Public inputs supplied by the verifier and echoed into the proof's
 /// public input vector. SPEC.md §3.
 ///
@@ -24,6 +43,11 @@ pub struct PublicInputs {
     pub claimed_pubkey_n: Vec<u8>,
     /// RSA public-key exponent, big-endian bytes.
     pub claimed_pubkey_e: Vec<u8>,
+    /// v1: which identity header (From/To) the guest discloses, or `None` for
+    /// the v0 privacy-preserving mode (prove domain possession, reveal no
+    /// address). Disclosure is opt-in: people are not named unless the prover
+    /// chooses to. See v1 design §4.
+    pub disclosed_header_kind: Option<HeaderKind>,
 }
 
 /// Private witness, prover-only. SPEC.md §3.
@@ -53,4 +77,10 @@ pub struct PublicOutputs {
     pub claimed_domain: Vec<u8>,
     /// Poseidon-based replay nullifier. SPEC.md §4.7.
     pub nullifier: [u8; 32],
+    /// v1: the disclosed identity address (`local@domain`, domain lowercased),
+    /// extracted from the DKIM-signed header named by
+    /// `PublicInputs::disclosed_header_kind`. **Empty** when disclosure was not
+    /// requested (`disclosed_header_kind == None`) — the privacy-preserving
+    /// default. See v1 design §4.10.
+    pub disclosed_address: Vec<u8>,
 }

@@ -1,0 +1,14 @@
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=insider.test;
+ i=@insider.test; q=dns/txt; s=v0test; t=1781409024; h=from : to :
+ subject : date; bh=Ck5SoRNWUpSR4X0COv7R5ub2pUTtl6xz4dTFz++ji4M=;
+ b=aU2ezW22f6En22ieS++xvN3qlooG5oFINaCTeXdv3KmxY3sQxtVa2TNi6ubJ7kfoE1Vb1
+ UgUgcpdhQZOD82I+IRovv4uwoJ/S3A9a77ne/KCmxT1Qp8LeiX99EVZNhm4Ru2+h35vqbgG
+ xuZYDQyin8Frz6TBwyZetP/iB84el6AYKhhRcBvkBRJtDePSxRA9T5FUiBlihRto9uBm17K
+ wVAC5B4tkqxuuHFJkLK+grb2uRX7YMwGslwKoxYCaNihkrmd73p4cxKNilnjTBz/REMc6Q1
+ hc4a23leNJzoc1sJl8d5N7w/QZRIZGHooWF21s6pOodOFoFlh6f0TTjiqW0g==
+From: noatsign-here
+To: ops <ops@insider.test>
+Subject: org membership
+Date: Mon, 01 Jun 2026 09:00:00 +0000
+
+body

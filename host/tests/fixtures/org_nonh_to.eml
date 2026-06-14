@@ -1,0 +1,14 @@
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=insider.test;
+ i=@insider.test; q=dns/txt; s=v0test; t=1781409024; h=from : subject :
+ date; bh=Ck5SoRNWUpSR4X0COv7R5ub2pUTtl6xz4dTFz++ji4M=;
+ b=tJvsdtj0b7h2Py0cbKrkQ8n5PK/5xUydhWy+bm13kPZYhvXvtwa89a0zPQkdDPsrcQTCc
+ YW6nFuh1XZwsujdeLxmcU0+o7E/4yBcBqnjKASW/B0BVQqIUmerrhFap4APv+7IvUUq3566
+ hf0h40Ds5YeV089bePAXRFn0fMqpYVAhz+q9lBet0cPCC1lH7YS3I4CGoAzd4WTjVBp2Kaw
+ nxKNf+wik0sPPd/mWJxpFbtAS377WrbZQb9T+8Vwz4eo5jFHxRcfEGSwe0S9XWCEgQMx6jP
+ 1dKhKApNyhYgs54bPr8kFfNXCyEZWjx7AvONXpZxIMZfEhlJ4WFrf3DXcIXQ==
+From: whistle <whistle@insider.test>
+To: ops <ops@insider.test>
+Subject: org membership
+Date: Mon, 01 Jun 2026 09:00:00 +0000
+
+body

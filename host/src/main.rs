@@ -1,8 +1,29 @@
 //! 0nce host CLI. SPEC.md §5 (prove) and §6 (verify).
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
+use nce_core::HeaderKind;
 use std::path::PathBuf;
+
+/// CLI spelling of `Option<nce_core::HeaderKind>` (v1 `--disclose`).
+/// `None` is the privacy-preserving default: prove domain possession, reveal
+/// no address.
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum DiscloseArg {
+    None,
+    From,
+    To,
+}
+
+impl From<DiscloseArg> for Option<HeaderKind> {
+    fn from(d: DiscloseArg) -> Self {
+        match d {
+            DiscloseArg::None => Option::None,
+            DiscloseArg::From => Some(HeaderKind::From),
+            DiscloseArg::To => Some(HeaderKind::To),
+        }
+    }
+}
 
 mod dns;
 mod email;
@@ -55,6 +76,13 @@ enum Cmd {
         /// the witnessed one.
         #[arg(long)]
         dkim_header_offset: Option<u32>,
+
+        /// v1: which signed identity header to disclose. `none` (default) is
+        /// the privacy-preserving v0 mode — prove domain possession, reveal no
+        /// address. `from`/`to` reveal that signed header's email address as a
+        /// public output. Disclosure is opt-in. v1 design §6.
+        #[arg(long, value_enum, default_value_t = DiscloseArg::None)]
+        disclose: DiscloseArg,
     },
     /// Verify a proof artifact and check its nullifier against the local store.
     Verify {
@@ -71,7 +99,7 @@ enum Cmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.cmd {
-        Cmd::Prove { email, out, pubkey_tag, yes, claimed_domain, dkim_header_offset } => {
+        Cmd::Prove { email, out, pubkey_tag, yes, claimed_domain, dkim_header_offset, disclose } => {
             let out_path = out.unwrap_or_else(|| {
                 let mut p = email.clone();
                 let stem = p.file_stem().map(|s| s.to_owned()).unwrap_or_default();
@@ -89,6 +117,7 @@ fn main() -> Result<()> {
                 assume_yes: yes,
                 claimed_domain_override: claimed_domain.as_deref(),
                 dkim_header_offset_override: dkim_header_offset,
+                disclose: disclose.into(),
             })
         }
         Cmd::Verify { proof, nullifier_store } => {

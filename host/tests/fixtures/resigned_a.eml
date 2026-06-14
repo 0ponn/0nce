@@ -1,0 +1,15 @@
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=insider.test;
+ i=@insider.test; q=dns/txt; s=v0test; t=1781405472; h=from : to :
+ subject : date; bh=cGzZsCUTXuctABGi17UqXWqXVKbLeYfjJxN2loXLbWc=;
+ b=UcJfsmUI3JCoLbSkP7Y3G7BEWWKEGSN296sCjpV9JcsZtr+WvS0HTY7QlOExMyHmNvldY
+ e47pnLaNf7zjCf1y71p5mXZSO3blS0qo8MwAzSGetEKnJ0rTGOcF5Gu31kwHfZZtkgKk9vu
+ MBidGKd5jrpjaLM2QKYpdUEKmddul0OkmbpwhQHXpWQ9kT3mRfjLbaI/HH6qNEfzZ4qt+Wt
+ pcRxTn+vnObVgRhL3ywtarLv+KK6ba3FzIKPOstoN+zMPvsoRx78rUAzRgwsZoOAsYpFwoN
+ lE8tryoDFG2IJaYX3xedSPl+RVUUm10zAXGkuqQHosYOPnHTeZt9ifgH52FQ==
+From: insider <whistle@insider.test>
+To: verifier <v@example.org>
+Subject: the thing
+Date: Mon, 01 Jun 2026 09:00:00 +0000
+
+Heads up: the Q3 numbers were moved before the board saw them.
+I have the original deck.
