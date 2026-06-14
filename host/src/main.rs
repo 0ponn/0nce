@@ -5,18 +5,22 @@ use clap::{Parser, Subcommand, ValueEnum};
 use nce_core::HeaderKind;
 use std::path::PathBuf;
 
-/// CLI spelling of `nce_core::HeaderKind` (v1 `--disclose`).
+/// CLI spelling of `Option<nce_core::HeaderKind>` (v1 `--disclose`).
+/// `None` is the privacy-preserving default: prove domain possession, reveal
+/// no address.
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum DiscloseArg {
+    None,
     From,
     To,
 }
 
-impl From<DiscloseArg> for HeaderKind {
+impl From<DiscloseArg> for Option<HeaderKind> {
     fn from(d: DiscloseArg) -> Self {
         match d {
-            DiscloseArg::From => HeaderKind::From,
-            DiscloseArg::To => HeaderKind::To,
+            DiscloseArg::None => Option::None,
+            DiscloseArg::From => Some(HeaderKind::From),
+            DiscloseArg::To => Some(HeaderKind::To),
         }
     }
 }
@@ -73,10 +77,11 @@ enum Cmd {
         #[arg(long)]
         dkim_header_offset: Option<u32>,
 
-        /// v1: which signed identity header to disclose (From or To). The
-        /// guest reveals that header's email address as a public output,
-        /// asserting its domain equals claimed_domain. v1 design §6.
-        #[arg(long, value_enum, default_value_t = DiscloseArg::From)]
+        /// v1: which signed identity header to disclose. `none` (default) is
+        /// the privacy-preserving v0 mode — prove domain possession, reveal no
+        /// address. `from`/`to` reveal that signed header's email address as a
+        /// public output. Disclosure is opt-in. v1 design §6.
+        #[arg(long, value_enum, default_value_t = DiscloseArg::None)]
         disclose: DiscloseArg,
     },
     /// Verify a proof artifact and check its nullifier against the local store.

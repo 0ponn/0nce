@@ -48,13 +48,15 @@ See `SPEC.md` §8 for what's deferred to v1.
 
 ## v1 — identity-header disclosure
 
-v1 adds **selective disclosure of one signed identity header** on top of the
-v0 proof. Design: `docs/superpowers/specs/2026-06-13-0nce-v1-design.md`.
+v1 adds **opt-in selective disclosure of one signed identity header** on top
+of the v0 proof. Design: `docs/superpowers/specs/2026-06-13-0nce-v1-design.md`.
 
-On top of everything v0 proves, a v1 proof additionally reveals the `From` or
-`To` email address (your choice, `--disclose from|to`) **from inside the
-DKIM-signed header set**, so the verifier learns an address the signing
-domain's key actually covered:
+**Disclosure is off by default — nobody is named unless the prover explicitly
+asks for it.** With `--disclose none` (the default) v1 behaves exactly like v0:
+it proves possession of an email DKIM-signed by `claimed_domain` and reveals no
+address. With `--disclose from|to`, the proof additionally reveals that signed
+header's email address **from inside the DKIM-signed header set**, so the
+verifier learns an address the signing domain's key actually covered:
 
 > … and the header named by `disclosed_header_kind` is covered by *H*'s `h=`
 > tag, and its parsed address `disclosed_address` (revealed as a public output)
@@ -63,7 +65,7 @@ domain's key actually covered:
 This is the **org-membership wedge**: "`claimed_domain`'s key signed an email
 naming `alice@claimed_domain`."
 
-**What v1 adds to the NOT-proved list:**
+**What v1 adds to the NOT-proved list** (only when disclosure is opted into):
 
 - v1 does **not** prove the prover *is*, or controls, `disclosed_address`. It
   is still possession-based — a forwarded copy proves it. Identity binding
@@ -95,11 +97,11 @@ Prove a DKIM-signed email:
 ```sh
 cargo run --release --bin 0nce -- prove \
   --email path/to/your.eml \
-  --disclose from \
-  --out /tmp/your.proof.bin
+  --out /tmp/your.proof.bin          # default: no address disclosed
+# add --disclose from   (or --disclose to)   to reveal that signed address
 ```
 
-The host extracts the DKIM-Signature header, looks up the signer's public key via `dig +short TXT <selector>._domainkey.<domain>`, prompts you to confirm the key (since the v0 design treats the pubkey as out-of-trust-boundary, see §6 step 2 weakness above), and runs the zkVM prover. Pass `-y` to skip the confirmation prompt, or `--pubkey-tag "v=DKIM1; ..."` to supply the TXT record directly without DNS. `--disclose from|to` (default `from`) selects which signed identity header's address is revealed.
+The host extracts the DKIM-Signature header, looks up the signer's public key via `dig +short TXT <selector>._domainkey.<domain>`, prompts you to confirm the key (since the v0 design treats the pubkey as out-of-trust-boundary, see §6 step 2 weakness above), and runs the zkVM prover. Pass `-y` to skip the confirmation prompt, or `--pubkey-tag "v=DKIM1; ..."` to supply the TXT record directly without DNS. `--disclose none|from|to` (default `none`) selects whether — and which — signed identity header's address is revealed; `none` keeps the prover anonymous within the domain.
 
 Verify a proof:
 

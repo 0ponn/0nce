@@ -33,8 +33,9 @@ pub struct ProveArgs<'a> {
     /// SPEC.md §7 adversarial #3 uses this to point at a planted second
     /// header and verify v0 considers only the witnessed one.
     pub dkim_header_offset_override: Option<u32>,
-    /// v1: which identity header (From/To) the guest discloses. v1 design §6.
-    pub disclose: HeaderKind,
+    /// v1: which identity header the guest discloses, or `None` for the
+    /// privacy-preserving default (no address revealed). v1 design §6.
+    pub disclose: Option<HeaderKind>,
 }
 
 pub fn run(args: ProveArgs) -> Result<()> {
@@ -90,7 +91,10 @@ pub fn run(args: ProveArgs) -> Result<()> {
         }
         None => parsed.domain,
     };
-    println!("  disclose  : {:?} header", args.disclose);
+    match args.disclose {
+        Some(k) => println!("  disclose  : {:?} header", k),
+        None => println!("  disclose  : none (privacy-preserving; no address revealed)"),
+    }
     let public_inputs = PublicInputs {
         claimed_domain,
         claimed_pubkey_n: pubkey.n,

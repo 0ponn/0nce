@@ -88,23 +88,32 @@ fn main() {
         &parsed.signature,
     );
 
-    // §4.9 (v1): locate the disclosed identity header WITHIN the signed set.
-    // Assert it is covered by `h=` (else the signature does not protect it),
-    // then read the bottom-most instance — the one the signature actually
-    // covers. Reading from the signed instance defeats header-prepend attacks.
-    let disclosed_name = public_inputs.disclosed_header_kind.header_name();
-    assert!(
-        signed_set::h_contains(&parsed.signed_headers_raw, disclosed_name),
-        "disclosed header is not covered by the DKIM h= tag"
-    );
-    let disclosed_header_value = signed_set::signed_header_value(&witness.email_raw, disclosed_name)
-        .expect("disclosed header is in h= but absent from the message");
+    // §4.9 + §4.10 (v1): identity-header disclosure is OPT-IN. With
+    // `disclosed_header_kind == None` the guest reveals no address (v0
+    // privacy-preserving mode): nobody is named unless the prover chose to.
+    let disclosed_address = match public_inputs.disclosed_header_kind {
+        None => Vec::new(),
+        Some(kind) => {
+            // §4.9: locate the disclosed header WITHIN the signed set. Assert
+            // it is covered by `h=` (else the signature does not protect it),
+            // then read the bottom-most instance — the one the signature
+            // actually covers. Reading the signed instance defeats
+            // header-prepend attacks.
+            let disclosed_name = kind.header_name();
+            assert!(
+                signed_set::h_contains(&parsed.signed_headers_raw, disclosed_name),
+                "disclosed header is not covered by the DKIM h= tag"
+            );
+            let value = signed_set::signed_header_value(&witness.email_raw, disclosed_name)
+                .expect("disclosed header is in h= but absent from the message");
 
-    // §4.10 (v1): parse the address from the signed header and emit it.
-    // Domain/signer alignment is a verifier-side policy check (see host
-    // verify.rs), not a guest assertion — real mail is often signed by a
-    // provider whose d= differs from the From domain.
-    let disclosed_address = address::extract_address(&disclosed_header_value);
+            // §4.10: parse the address from the signed header and emit it.
+            // Domain/signer alignment is a verifier-side policy check (see host
+            // verify.rs), not a guest assertion — real mail is often signed by
+            // a provider whose d= differs from the From domain.
+            address::extract_address(&value)
+        }
+    };
 
     // §4.8: commit public outputs (claimed_domain echoed + nullifier + address).
     env::commit(&PublicOutputs {

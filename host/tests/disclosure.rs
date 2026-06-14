@@ -112,6 +112,25 @@ fn disclose_to_reveals_recipient_address() {
     assert!(out.contains("NOT aligned with signing domain"), "expected not-aligned:\n{out}");
 }
 
+#[test]
+fn disclose_none_reveals_no_address() {
+    // The privacy-preserving default: prove domain possession, name no one.
+    let tmp = tempfile::tempdir().unwrap();
+    let proof = tmp.path().join("p.bin");
+    let store = tmp.path().join("nf.txt");
+    let tag = read_tag("resigned.pubkey.tag");
+
+    let (ok, _o, err) = run_prove(&fixture("resigned_a.eml"), &proof, &tag, "none");
+    assert!(ok, "prove failed:\n{err}");
+    let (ok, out, err) = run_verify(&proof, &store);
+    assert!(ok, "verify rejected:\n{out}{err}");
+    assert!(
+        out.contains("none — anonymous within domain"),
+        "expected no disclosure:\n{out}"
+    );
+    assert!(out.contains("ACCEPTED"));
+}
+
 // -- Adversarial (load-bearing) --------------------------------------------
 
 #[test]

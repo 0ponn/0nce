@@ -33,22 +33,17 @@ the signature covers, and is revealed. ✔
 4. **Nullifier unchanged.** Per-signature; disclosing From then To of the same
    email yields one nullifier (second = replay). Tests use separate stores. ✔
 
-## NEEDS THE HUMAN — design fork
+## RESOLVED — disclosure is opt-in, privacy by default
 
-**v1 currently makes disclosure mandatory.** Every proof now reveals an
-identity address. That removes v0's "anonymous within the domain" capability
-(prove possession of *some* email from `claimed_domain` without naming who).
-
-Option to restore it: make the input `Option<HeaderKind>` and add
-`--disclose none|from|to` (default could stay `from`, or flip to `none` to
-keep v0 behavior the default). When `none`, skip §4.9/§4.10 and commit an
-empty `disclosed_address` — v1 becomes strictly additive over v0.
-
-I did **not** make this change unilaterally: it alters the proven statement,
-and this project's ethos is "SPEC §2 is the contract; drift = drift." The
-approved v1 design states disclosure as an added condition (always on). If you
-want the anonymous mode preserved, say so and I'll wire optionality (small,
-~1 commit). Otherwise mandatory disclosure stands as designed.
+This was flagged as a fork (v1 initially made disclosure mandatory, removing
+v0's anonymous-within-domain mode). Michael's call: "protect people at all
+cost." Implemented: `disclosed_header_kind: Option<HeaderKind>`,
+`--disclose none|from|to` defaulting to **none**. With `none` the guest skips
+§4.9/§4.10 and commits an empty `disclosed_address`; the verifier prints
+"(none — anonymous within domain)". v1 is now strictly additive over v0 — no
+one is named unless the prover opts in. Covered by
+`disclosure.rs::disclose_none_reveals_no_address` and the default-path smoke
+test. The proven statement (design §2) reflects the optional condition.
 
 ## For the second-model sign-off
 

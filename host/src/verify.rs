@@ -32,23 +32,29 @@ pub fn run(args: VerifyArgs) -> Result<()> {
 
     let domain_str = String::from_utf8_lossy(&outputs.claimed_domain);
     let nullifier_hex = hex::encode(outputs.nullifier);
-    let disclosed_str = String::from_utf8_lossy(&outputs.disclosed_address);
     println!("Receipt verifies. claimed_domain: {}", domain_str);
 
-    // v1: report whether the disclosed address's domain aligns with the
-    // signing domain. The org-membership claim ("the domain vouches for this
-    // address") holds only when aligned; a misaligned address means the
-    // signer (e.g. a mail provider) merely relayed mail naming that address.
-    // This is policy the relying party enforces — the guest proves only that
-    // the address came from the DKIM-signed header set.
-    let aligned = address_domain(&outputs.disclosed_address)
-        .map(|d| d.eq_ignore_ascii_case(&outputs.claimed_domain))
-        .unwrap_or(false);
-    println!(
-        "Disclosed address: {}  [domain {} signing domain]",
-        disclosed_str,
-        if aligned { "ALIGNED with" } else { "NOT aligned with" }
-    );
+    // v1: disclosure is opt-in. An empty address means the prover proved
+    // domain possession without naming anyone (the privacy-preserving mode).
+    // When an address IS disclosed, report whether its domain aligns with the
+    // signing domain: the org-membership claim ("the domain vouches for this
+    // address") holds only when aligned; a misaligned address means the signer
+    // (e.g. a mail provider) merely relayed mail naming that address. Alignment
+    // is policy the relying party enforces — the guest proves only that the
+    // address came from the DKIM-signed header set.
+    if outputs.disclosed_address.is_empty() {
+        println!("Disclosed address: (none — anonymous within domain)");
+    } else {
+        let disclosed_str = String::from_utf8_lossy(&outputs.disclosed_address);
+        let aligned = address_domain(&outputs.disclosed_address)
+            .map(|d| d.eq_ignore_ascii_case(&outputs.claimed_domain))
+            .unwrap_or(false);
+        println!(
+            "Disclosed address: {}  [domain {} signing domain]",
+            disclosed_str,
+            if aligned { "ALIGNED with" } else { "NOT aligned with" }
+        );
+    }
     println!("Nullifier: {}", nullifier_hex);
 
     if nullifier_store::contains(args.nullifier_store_path, &nullifier_hex)? {
