@@ -109,6 +109,11 @@ pub fn h_contains(h_tag_value: &[u8], name: &[u8]) -> bool {
 /// `From:` appended below it would change the signed data and fail RSA verify.
 ///
 /// Returns `None` if no header with that name exists in the block.
+///
+/// Parses the *entire* header block (same as `build_signed_data`), so the
+/// instance returned here is byte-identical to the one `build_signed_data`
+/// fed to RSA for this name's first `h=` mention. That consistency is what
+/// guarantees we disclose exactly the signed bytes.
 pub fn signed_header_value(email: &[u8], name: &[u8]) -> Option<Vec<u8>> {
     let body_start = body::find_body_start(email);
     let headers = parse_headers(&email[..body_start]);
