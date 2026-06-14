@@ -33,6 +33,14 @@ pipeline works without paying the STARK prove cost.
 | date       | host                                                | risc0-zkvm | mode | prove wall-clock | proof.bin size       | verify wall-clock |
 |------------|-----------------------------------------------------|------------|------|------------------|----------------------|-------------------|
 | 2026-05-12 | Intel Core Ultra 7 155H (11C / 22T), 32 GB, Fedora 44 | 3.0.5      | prod | 50:55.69         | 3,938,908 B (3.76 MB) | 0.21 s            |
+| 2026-06-13 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod | 32:19.50         | 3,938,908 B (3.76 MB) | 0.24 s            |
+
+The 2026-06-13 i5 run reproduced the canonical nullifier
+`20939a2deaf4f262356c519eed580641dddf2f72d5e527a75fd3a7b3ce3bc27b` and the
+exact 3,938,908-byte proof size bit-for-bit on different hardware, confirming
+the prove pipeline is deterministic and machine-independent. Faster wall clock
+than the 22-thread laptop because RISC0 proving saturates ~10 cores here and
+the i5's cores are faster.
 
 Prove run details (from `/usr/bin/time -v`):
 
