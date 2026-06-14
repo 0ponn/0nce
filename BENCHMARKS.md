@@ -34,6 +34,15 @@ pipeline works without paying the STARK prove cost.
 |------------|-----------------------------------------------------|------------|------|------------------|----------------------|-------------------|
 | 2026-05-12 | Intel Core Ultra 7 155H (11C / 22T), 32 GB, Fedora 44 | 3.0.5      | prod | 50:55.69         | 3,938,908 B (3.76 MB) | 0.21 s            |
 | 2026-06-13 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod | 32:19.50         | 3,938,908 B (3.76 MB) | 0.24 s            |
+| 2026-06-14 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v1, --disclose from) | 31:09.34 | 3,939,100 B (3.76 MB) | 0.22 s |
+
+The 2026-06-14 row is the **v1** guest (identity-header disclosure) on the same
+`real.eml`, `--disclose from`. It revealed `mlayug@visionaryauto.ai` (ALIGNED
+with the signing domain) and verified. The nullifier is bit-identical to v0
+(`20939a2d…`, unchanged — it is per-signature, not per-disclosure). Proof grew
+by 192 bytes (the disclosed address in the journal); prove time is within noise
+of the v0 i5 run — disclosure (header location + address parse) is negligible
+against the RSA-in-STARK cost.
 
 The 2026-06-13 i5 run reproduced the canonical nullifier
 `20939a2deaf4f262356c519eed580641dddf2f72d5e527a75fd3a7b3ce3bc27b` and the
