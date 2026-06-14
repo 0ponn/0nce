@@ -88,6 +88,37 @@ pub fn build_signed_data(
     output
 }
 
+/// v1 design §4.9. True if `name` (lowercase) is one of the header field
+/// names listed in the `h=` tag value, i.e. the header is covered by the
+/// DKIM signature. Case-insensitive; tolerates folding WSP/CRLF in `h=`.
+pub fn h_contains(h_tag_value: &[u8], name: &[u8]) -> bool {
+    h_tag_value
+        .split(|&c| c == b':')
+        .map(trim_wsp_crlf)
+        .filter(|n| !n.is_empty())
+        .any(|n| bytes_eq_case_insensitive(n, name))
+}
+
+/// v1 design §4.9. Return the raw value bytes of the **bottom-most** header
+/// in the message header block matching `name` (case-insensitive). For a
+/// header listed once in `h=`, that bottom-most occurrence is exactly the
+/// instance the signature covers (RFC 6376 §5.4.2 bottom-up selection, as
+/// implemented in `build_signed_data`). Reading the signed instance — never
+/// an unsigned prepended duplicate — is what makes disclosure header-prepend
+/// safe: a `From:` prepended above the signed one is not returned here, and a
+/// `From:` appended below it would change the signed data and fail RSA verify.
+///
+/// Returns `None` if no header with that name exists in the block.
+pub fn signed_header_value(email: &[u8], name: &[u8]) -> Option<Vec<u8>> {
+    let body_start = body::find_body_start(email);
+    let headers = parse_headers(&email[..body_start]);
+    headers
+        .iter()
+        .rev()
+        .find(|h| bytes_eq_case_insensitive(h.name, name))
+        .map(|h| h.value.to_vec())
+}
+
 // -- helpers ---------------------------------------------------------------
 
 /// One parsed header from the message header block: name (case preserved)
@@ -324,6 +355,32 @@ d=example.com; s=sel; h=From; bh=xx; b=";
         assert_eq!(h[0].value, b" alice@x");
         assert_eq!(h[1].name, b"To");
         assert_eq!(h[1].value, b" bob@y");
+    }
+
+    #[test]
+    fn h_contains_matches_case_insensitively_and_tolerates_wsp() {
+        assert!(h_contains(b"from : to : subject : date", b"from"));
+        assert!(h_contains(b"From:To:Subject", b"to"));
+        assert!(!h_contains(b"to:subject:date", b"from"));
+    }
+
+    #[test]
+    fn signed_header_value_returns_bottom_most_instance() {
+        // Two From headers (a prepended attacker line above the real one).
+        // Bottom-most = the signed instance.
+        let email = b"From: attacker@evil.test\r\n\
+                      From: real@corp.test\r\n\
+                      To: ops@corp.test\r\n\
+                      \r\nbody";
+        assert_eq!(
+            signed_header_value(email, b"from").unwrap(),
+            b" real@corp.test".to_vec()
+        );
+        assert_eq!(
+            signed_header_value(email, b"to").unwrap(),
+            b" ops@corp.test".to_vec()
+        );
+        assert!(signed_header_value(email, b"subject").is_none());
     }
 
     #[test]

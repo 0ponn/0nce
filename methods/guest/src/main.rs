@@ -19,6 +19,7 @@
 
 #![cfg_attr(not(test), no_main)]
 
+mod address;
 mod body;
 mod bytes_util;
 mod canonical;
@@ -87,9 +88,28 @@ fn main() {
         &parsed.signature,
     );
 
-    // §4.8: commit public outputs (claimed_domain echoed + nullifier).
+    // §4.9 (v1): locate the disclosed identity header WITHIN the signed set.
+    // Assert it is covered by `h=` (else the signature does not protect it),
+    // then read the bottom-most instance — the one the signature actually
+    // covers. Reading from the signed instance defeats header-prepend attacks.
+    let disclosed_name = public_inputs.disclosed_header_kind.header_name();
+    assert!(
+        signed_set::h_contains(&parsed.signed_headers_raw, disclosed_name),
+        "disclosed header is not covered by the DKIM h= tag"
+    );
+    let disclosed_header_value = signed_set::signed_header_value(&witness.email_raw, disclosed_name)
+        .expect("disclosed header is in h= but absent from the message");
+
+    // §4.10 (v1): parse the address from the signed header and emit it.
+    // Domain/signer alignment is a verifier-side policy check (see host
+    // verify.rs), not a guest assertion — real mail is often signed by a
+    // provider whose d= differs from the From domain.
+    let disclosed_address = address::extract_address(&disclosed_header_value);
+
+    // §4.8: commit public outputs (claimed_domain echoed + nullifier + address).
     env::commit(&PublicOutputs {
         claimed_domain: public_inputs.claimed_domain,
         nullifier,
+        disclosed_address,
     });
 }
