@@ -1,6 +1,6 @@
-# 0nce — ZK-Email Insider Proof, v0
+# 0nce — ZK-Email Insider Proof
 
-**Status: v0 learning scope.** CLI in, CLI out. Single prover, single verifier, single domain. See `SPEC.md` for the full specification — this README is a précis with the critical caveats pulled forward.
+**Status: v0 → v1 (opt-in disclosure) → v2-A (registry membership).** CLI in, CLI out. See `SPEC.md` for the v0 contract and `docs/superpowers/specs/` for the v1/v2 designs — this README is a précis with the critical caveats pulled forward.
 
 ## What this proves
 
@@ -28,13 +28,7 @@ The DKIM selector is private in v0 (see `SPEC.md` §3, §6 step 2). Therefore th
 
 **Stated plainly:** a malicious prover could supply a pubkey they control, sign a fake "DKIM" message with their own key, claim a domain they do not control, and produce a proof that passes the in-zkVM check. The proof is sound *internally* but the verifier-side DNS check is what closes the loop — and v0 makes that step manual.
 
-This is a known weakness, documented here and in `SPEC.md` §6. v1 will fix it via one of:
-
-- making the selector public,
-- proving against a Merkle tree of known-good pubkeys for the domain, or
-- DNSSEC-in-ZK.
-
-Each has tradeoffs. v0 punts.
+**This is closed in v2-A** (see below): the pubkey is no longer a prover-supplied public input — the prover proves it is a member of a registry the verifier pins. v0/v1 retain the manual-DNS model; upgrade to the registry flow for soundness against prover forgery.
 
 ## Scope limitations in v0
 
@@ -77,10 +71,43 @@ naming `alice@claimed_domain`."
   came from the signed set and not a forged/prepended header — is enforced in
   the guest regardless.
 
-**v1 is a capability demo, NOT production-sound for high-stakes use (e.g.
-lending).** The v0 pubkey-trust gap above is unchanged: a malicious prover who
-supplies their own key can forge any address *and* its disclosure. Closing
-that gap is a prerequisite for production and is tracked separately.
+**The pubkey-trust gap that limited v1 is closed in v2-A** (below): once you
+prove against a pinned registry root, a malicious prover can no longer supply
+their own key to forge an address or its disclosure.
+
+## v2-A — registry membership (pubkey-trust closed)
+
+v2-A removes the prover-supplied pubkey entirely. Design:
+`docs/superpowers/specs/2026-06-14-0nce-v2a-registry-membership-design.md`.
+
+The signing key and selector move **into the witness** (private). The guest
+proves, in-ZK, that `leaf = Poseidon(sep, claimed_domain, selector, pubkey)` is
+a member of the DKIM key registry whose root is the public input
+`registry_root`. The verifier **pins** a trusted root (`--registry-root`); a
+forger whose key isn't in that registry can't fold to it, so:
+
+- proving a forged email against the real registry forces the guest to verify
+  against the *registered* key — RSA fails, **no proof**;
+- a forger's self-built registry yields a proof carrying *their* root, which the
+  pinned verifier **rejects** (root mismatch).
+
+Run `./demo.sh` to watch both defenses (instant, dev mode).
+
+```sh
+0nce registry build --domains domains.txt --out registry.json   # verifier builds the trusted set
+0nce prove  --email e.eml --registry registry.json -y --out p.bin
+0nce verify --proof p.bin --registry-root <root>                 # pin the trusted root
+```
+
+**Privacy bonus:** the pubkey and selector are no longer public — the verifier
+learns only the domain and that the key is registered.
+
+**What v2-A still trusts (removed by v2-B/C):** the *provenance* of
+`registry_root`. In A the root is built by a DNS-lookup tool — an oracle
+trusting unauthenticated DNS at build time. **v2-B** proves one DNS record
+authentic via DNSSEC-in-ZK; **v2-C** makes the whole root ZK-attested
+(proof-carrying registry), removing the oracle. Until then, v2-A is sound
+against *prover* forgery but still trusts whoever built the registry.
 
 ## Build / run
 

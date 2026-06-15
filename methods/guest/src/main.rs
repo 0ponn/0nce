@@ -72,13 +72,34 @@ fn main() {
         parsed.header_end,
     );
 
-    // §4.6: RSA-PKCS1v1.5-SHA256 verify of the signature over signed_data.
-    // The expensive step.
+    // §4.6′ (v2-A): RSA-PKCS1v1.5-SHA256 verify against the WITNESSED key (not
+    // a public input). The expensive step.
     verify::verify_rsa_signature(
         &signed_data,
         &parsed.signature,
-        &public_inputs.claimed_pubkey_n,
-        &public_inputs.claimed_pubkey_e,
+        &witness.pubkey_n,
+        &witness.pubkey_e,
+    );
+
+    // §4.6a (v2-A): registry membership. Bind the witnessed key to the
+    // verifier-pinned `registry_root` so a prover cannot supply their own key.
+    // leaf = Poseidon(sep, claimed_domain, selector, n, e); prove it is a
+    // member of the tree at `leaf_index`. Failure = panic = no proof. This is
+    // the v2-A soundness assertion that closes the v0 pubkey-trust gap.
+    let leaf = nce_core::registry::registry_leaf(
+        &public_inputs.claimed_domain,
+        &witness.selector,
+        &witness.pubkey_n,
+        &witness.pubkey_e,
+    );
+    assert!(
+        nce_core::registry::verify_membership(
+            &leaf,
+            &witness.merkle_path,
+            witness.leaf_index,
+            &public_inputs.registry_root,
+        ),
+        "signing key is not a member of the pinned registry root"
     );
 
     // §4.7: nullifier = Poseidon(DOMAIN_SEPARATOR_V0, claimed_domain, signature).
@@ -115,10 +136,12 @@ fn main() {
         }
     };
 
-    // §4.8: commit public outputs (claimed_domain echoed + nullifier + address).
+    // §4.8: commit public outputs (claimed_domain + nullifier + address +
+    // registry_root echoed so the verifier can re-check the pinned root).
     env::commit(&PublicOutputs {
         claimed_domain: public_inputs.claimed_domain,
         nullifier,
         disclosed_address,
+        registry_root: public_inputs.registry_root,
     });
 }

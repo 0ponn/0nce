@@ -94,9 +94,11 @@ from `witness.pubkey_n/e` instead of public inputs.
 
 ### §4.6a (new) Registry membership
 - Compute `leaf = Poseidon(DOMAIN_SEPARATOR_REGISTRY_V2, claimed_domain,
-  selector, pubkey_n, pubkey_e)`. Byte→field packing reuses the length-prefixed
-  scheme already in `nullifier.rs` (so variable-length inputs are unambiguous);
-  factor the shared packing into a helper if not already.
+  selector, pubkey_n, pubkey_e)`. Each variable-length input is compressed to
+  one BN254 field element via SHA-256-then-reduce (the `bytes_to_field` scheme
+  from `nullifier.rs`) and occupies its own Poseidon lane (t=6). Per-lane
+  compression — rather than concatenation — is what makes the inputs
+  unambiguous; there is no length-extension/concat ambiguity to guard against.
 - Assert `merkle_path.len() == REGISTRY_DEPTH`.
 - Fold the path: `node = leaf`; for each level `i`, `node = Poseidon(left,
   right)` where (left, right) order is chosen by bit `i` of `leaf_index`.

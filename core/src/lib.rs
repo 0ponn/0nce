@@ -10,6 +10,8 @@
 
 use serde::{Deserialize, Serialize};
 
+pub mod registry;
+
 /// Which identity header the prover discloses in v1. See the v1 design doc
 /// §4. Public input — the verifier knows which header was revealed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,10 +41,11 @@ impl HeaderKind {
 pub struct PublicInputs {
     /// The domain the prover claims the email is signed by (e.g. `b"corp.example"`).
     pub claimed_domain: Vec<u8>,
-    /// RSA public-key modulus, big-endian bytes.
-    pub claimed_pubkey_n: Vec<u8>,
-    /// RSA public-key exponent, big-endian bytes.
-    pub claimed_pubkey_e: Vec<u8>,
+    /// v2-A: the Merkle root of the DKIM key registry the verifier pins. The
+    /// guest proves the (witnessed) signing key is a member of this tree, so
+    /// the verifier trusts the root instead of a prover-supplied pubkey. A
+    /// BN254 field element (Poseidon output encoding). See v2-A design §2/§4.
+    pub registry_root: [u8; 32],
     /// v1: which identity header (From/To) the guest discloses, or `None` for
     /// the v0 privacy-preserving mode (prove domain possession, reveal no
     /// address). Disclosure is opt-in: people are not named unless the prover
@@ -68,6 +71,16 @@ pub struct Witness {
     pub signature: Vec<u8>,
     /// Body hash, base64 text as it appears in the `bh=` tag.
     pub body_hash: Vec<u8>,
+    /// v2-A: RSA public-key modulus, big-endian bytes. Witnessed (private) now,
+    /// not a public input — the guest proves it is a registry member.
+    pub pubkey_n: Vec<u8>,
+    /// v2-A: RSA public-key exponent, big-endian bytes (witnessed).
+    pub pubkey_e: Vec<u8>,
+    /// v2-A: Merkle authentication path (sibling hashes, leaf→root). Length
+    /// must equal `registry::REGISTRY_DEPTH`; the guest asserts this.
+    pub merkle_path: Vec<[u8; 32]>,
+    /// v2-A: the leaf's index in the registry tree (its path direction bits).
+    pub leaf_index: u32,
 }
 
 /// Public outputs committed by the guest to the journal. SPEC.md §3.
@@ -77,6 +90,9 @@ pub struct PublicOutputs {
     pub claimed_domain: Vec<u8>,
     /// Poseidon-based replay nullifier. SPEC.md §4.7.
     pub nullifier: [u8; 32],
+    /// v2-A: the registry root this proof was made against, echoed from the
+    /// public input so the verifier can re-check it equals the root it pins.
+    pub registry_root: [u8; 32],
     /// v1: the disclosed identity address (`local@domain`, domain lowercased),
     /// extracted from the DKIM-signed header named by
     /// `PublicInputs::disclosed_header_kind`. **Empty** when disclosure was not

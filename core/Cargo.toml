@@ -8,3 +8,9 @@ path = "src/lib.rs"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+# Registry leaf + Merkle membership (v2-A). Shared by the guest (verify) and
+# the host (build the tree). Same Poseidon/BN254 primitive as the nullifier.
+light-poseidon = "0.3"
+ark-bn254 = "0.5"
+ark-ff = "0.5"
+sha2 = "0.10"

@@ -14,8 +14,8 @@ use methods::GUEST_ELF;
 use nce_core::{HeaderKind, PublicInputs, Witness};
 use risc0_zkvm::{default_prover, ExecutorEnv};
 
-use crate::dns;
 use crate::email;
+use crate::registry::RegistryFile;
 
 pub struct ProveArgs<'a> {
     pub email_path: &'a Path,
@@ -36,6 +36,10 @@ pub struct ProveArgs<'a> {
     /// v1: which identity header the guest discloses, or `None` for the
     /// privacy-preserving default (no address revealed). v1 design §6.
     pub disclose: Option<HeaderKind>,
+    /// v2-A: path to a registry.json (the key set + root). When absent, the
+    /// key is resolved via `--pubkey-tag` or DNS and wrapped in an inline
+    /// one-entry registry. v2-A design §6.
+    pub registry_path: Option<&'a Path>,
 }
 
 pub fn run(args: ProveArgs) -> Result<()> {
@@ -58,15 +62,19 @@ pub fn run(args: ProveArgs) -> Result<()> {
     println!("  domain    : {}", domain_str);
     println!("  selector  : {}", selector_str);
 
-    let pubkey = if let Some(tag) = args.pubkey_tag_override {
-        println!("  pubkey    : (from --pubkey-tag override)");
-        dns::parse_dkim_tag(tag)?
+    // v2-A: resolve the signing key + its registry membership. The key now
+    // comes FROM the registry (not the prover), and the proof binds to the
+    // registry root the verifier will pin.
+    let registry = if let Some(rp) = args.registry_path {
+        println!("  registry  : {}", rp.display());
+        RegistryFile::load(rp)?
+    } else if let Some(tag) = args.pubkey_tag_override {
+        println!("  registry  : (inline 1-entry from --pubkey-tag)");
+        RegistryFile::build_from_tag(domain_str, selector_str, tag)?
     } else {
         println!("  resolving {}._domainkey.{} via dig ...", selector_str, domain_str);
-        let pk = dns::lookup(&parsed.domain, &parsed.selector)?;
-        println!("  pubkey    : RSA-{}-bit (n={} bytes BE)", pk.n.len() * 8, pk.n.len());
         if !args.assume_yes {
-            print!("Confirm this pubkey is currently published for {} (y/N)? ", domain_str);
+            print!("Build a 1-entry registry from this domain's published key and prove against it (y/N)? ");
             std::io::stdout().flush()?;
             let mut input = String::new();
             std::io::stdin().read_line(&mut input)?;
@@ -74,8 +82,10 @@ pub fn run(args: ProveArgs) -> Result<()> {
                 bail!("operator declined; not proving");
             }
         }
-        pk
+        RegistryFile::build_from_dns(domain_str, selector_str)?
     };
+    let resolved = registry.resolve(domain_str, selector_str)?;
+    println!("  registry_root: {}", hex::encode(resolved.root));
 
     let witness = Witness {
         email_raw,
@@ -83,6 +93,10 @@ pub fn run(args: ProveArgs) -> Result<()> {
         selector: parsed.selector.clone(),
         signature: parsed.signature_b64,
         body_hash: parsed.body_hash_b64,
+        pubkey_n: resolved.pubkey_n,
+        pubkey_e: resolved.pubkey_e,
+        merkle_path: resolved.merkle_path,
+        leaf_index: resolved.leaf_index,
     };
     let claimed_domain = match args.claimed_domain_override {
         Some(s) => {
@@ -97,8 +111,7 @@ pub fn run(args: ProveArgs) -> Result<()> {
     }
     let public_inputs = PublicInputs {
         claimed_domain,
-        claimed_pubkey_n: pubkey.n,
-        claimed_pubkey_e: pubkey.e,
+        registry_root: resolved.root,
         disclosed_header_kind: args.disclose,
     };
 
