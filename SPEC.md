@@ -159,7 +159,7 @@ The proof of correctness for this v0 is the test suite, not vibes.
 
 Listed here so they're not forgotten and not silently smuggled in:
 
-- Selector privacy vs. pubkey-trust tradeoff (§6 step 2).
+- Selector privacy vs. pubkey-trust tradeoff (§6 step 2). **DONE in v2-A** — registry membership: the pubkey is witnessed and proven a member of a verifier-pinned `registry_root`, and the selector is now private. See `docs/superpowers/specs/2026-06-14-0nce-v2a-registry-membership-design.md`. (Body disclosure below is DONE in v1; freshness/recipient-binding/canon modes remain.)
 - Freshness — proving the email is recent. Probably via DKIM signature timestamp + a verifier-supplied recent-block-hash or similar.
 - Recipient binding — proving the prover received the email, not merely possesses it.
 - Body content disclosure — selectively revealing one regex match from the body (the standard ZK-Email selective disclosure pattern).
