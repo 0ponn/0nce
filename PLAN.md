@@ -1,55 +1,57 @@
-# 0nce v1 — implementation plan (task ledger)
+# 0nce v2-A — implementation plan (task ledger)
 
-Design of record: `docs/superpowers/specs/2026-06-13-0nce-v1-design.md`.
-Linear: 0PO-301..308. Branch: `feat/v1-org-disclosure`.
+Design: `docs/superpowers/specs/2026-06-14-0nce-v2a-registry-membership-design.md`.
+Linear: 0PO-309..315 (A), 0PO-316/317 (B/C stubs). Branch: `feat/v2a-registry-membership`.
 
-TDD: module unit tests (`cd methods/guest && cargo test`, `cargo test -p nce-core`)
-first where a unit test fits; CLI integration tests in dev mode for end-to-end.
-Commit per unit. Update Linear issue → in_progress/Done as each lands.
+TDD: core crypto + IO unit tests first; guest membership wired; CLI integration
+in dev mode. Commit per unit. Update Linear as each lands.
+
+Key reuse: `nullifier.rs` pattern — `bytes_to_field = Fr::from_be_bytes_mod_order(Sha256(x))`,
+Poseidon via `light-poseidon` new_circom(n). Leaf = per-input field compression
+(cleaner than concat; each input is its own Poseidon lane). `dns::parse_dkim_tag → (n,e)`.
 
 ## Units (in order)
 
-1. **core IO** (0PO-302) — `HeaderKind {From,To}` enum (Serialize/Deserialize,
-   Copy, Eq) with `header_name()->&'static [u8]`; `PublicInputs.disclosed_header_kind`;
-   `PublicOutputs.disclosed_address: Vec<u8>`. Gate: `cargo build` of core.
-   ⚠ Touching the wire format breaks host+guest until both updated — expect red
-   until units 2–5 land.
+1. **core registry module** (0PO-312 primitives) — add light-poseidon/ark-bn254/ark-ff/sha2
+   to core/Cargo.toml. New `core/src/registry.rs`:
+   - `DOMAIN_SEPARATOR_REGISTRY_V2 = b"0nce-v2-registry-leaf"`, `REGISTRY_DEPTH = 20`
+   - `registry_leaf(domain, selector, n, e) -> [u8;32]` = Poseidon5(f(sep),f(dom),f(sel),f(n),f(e))
+   - `poseidon2([u8;32],[u8;32]) -> [u8;32]`, `empty_leaf()`
+   - `verify_membership(leaf, path:&[[u8;32]], leaf_index, root) -> bool`
+   - `build_tree(leaves) -> (root, paths)` for the host tool
+   Unit tests: leaf determinism/uniqueness, membership true/false, build↔verify roundtrip.
 
-2. **guest address.rs** (0PO-304) — new module. `extract_address(value, claimed_domain)
-   -> Vec<u8>`: unfold, strip display-name, parse `local@domain` restricted grammar
-   (dot-atom local; LDH domain), assert domain==claimed_domain (lowercased), return
-   `local@lowercased_domain`. Panics on malformed / mismatch. Unit tests first.
+2. **core IO** (0PO-310) — PublicInputs: drop claimed_pubkey_n/e, add registry_root:[u8;32].
+   Witness: add pubkey_n/e, merkle_path:Vec<[u8;32]>, leaf_index:u32. PublicOutputs: add registry_root.
 
-3. **guest signed_set.rs** (0PO-303) — add `pub fn h_contains(h_tag_value, name)->bool`
-   and `pub fn signed_header_value(email, name)->Option<Vec<u8>>` (bottom-most match in
-   header block = the instance the signature covers; header-prepend-safe). Unit tests.
+3. **guest** (0PO-311/312) — main.rs §4.6 RSA uses witness.pubkey_n/e; new step: leaf via
+   nce_core::registry_leaf, assert path.len()==DEPTH, assert verify_membership(...==registry_root),
+   echo registry_root. (No new guest module — reuse core.)
 
-4. **guest main.rs** (0PO-303/304) — `mod address;`; after RSA verify: assert
-   h_contains(disclosed kind) else panic "not covered by h="; fetch signed_header_value;
-   `address::extract_address`; commit `disclosed_address` in PublicOutputs.
+4. **host registry** (0PO-313) — host/src/registry.rs: RegistryFile{depth,root,entries:[{domain,
+   selector,n,e,index,path}]}, serde_json. build from DNS list OR --pubkey-tag (1-entry).
+   main.rs: `registry build` subcommand + --registry/--registry-root args.
 
-5. **host** (0PO-305/306) — `--disclose <from|to>` (default from) → HeaderKind in
-   PublicInputs (prove.rs ProveArgs + main.rs). verify.rs prints `disclosed_address`.
+5. **host prove/verify** (0PO-313) — prove: --registry <file> (or --pubkey-tag → inline 1-entry)
+   populates witness pubkey/path/index + registry_root input. verify: --registry-root <hex> optional;
+   if present assert journal root == it (reject mismatch); else report root + "not pinned" warning.
 
-6. **fixtures** (0PO-307) — `host/tests/fixtures/gen_org.py` (dkimpy, own key →
-   `org.pubkey.tag`): `org.eml` (From+To @insider.test, h=from:to:subject:date),
-   `org_nonh_to.eml` (To NOT in h=), `org_misaligned.eml` (From @other.test, d=insider.test),
-   `org_malformed_from.eml` (From has no @). Commit generated .eml + .tag + generator.
+6. **fix existing tests** (0PO-314) — must_pass/adversarial/disclosure use --pubkey-tag; keep that
+   working (inline 1-entry registry). They should pass unchanged modulo new output lines.
 
-7. **integration tests** (0PO-307) — `host/tests/disclosure.rs`:
-   - must-pass: disclose from → whistle@insider.test, verifies; disclose to → ops@insider.test.
-   - adversarial: header-prepend (in-test mutate org.eml; disclosed == signed instance, not attacker);
-     non-h= To → panic; misaligned domain → panic; malformed From → panic.
+7. **new tests + demo** (0PO-314) — host/tests/registry.rs: forger-key-not-in-registry → no proof;
+   forger fake-root → verify rejects on pin mismatch; corrupt path → panic; privacy guard (no
+   pubkey/selector in journal). demo.sh (dev mode): honest ACCEPTED vs forgery→no proof.
 
-8. **build + suite** — `cargo build -p host`; full `cargo test -p host` green (dev mode).
+8. **build + suite** — cargo build -p host; full cargo test green (dev mode).
 
-9. **docs** (0PO-301/308) — README v1 statement + non-statements + demo-not-prod caveat;
-   SPEC §4.9/§4.10 note; BENCHMARKS v1 row after real prove.
+9. **docs** (0PO-309/315) — README+SPEC: gap closed vs prover forgery, residual oracle trust→B/C.
+   BENCHMARKS after real prove.
 
-10. **real prove** (0PO-308) — prod-mode prove on org.eml (background, ~30min), confirm
-    disclosed_address in output + verifies. Then v1 §9 DoD sign-off.
+10. **real prove** (0PO-315) — prod prove against a DNS-built registry (background ~31min); confirm
+    no pubkey/selector in journal + verifies. Then PR.
 
 ## Resume notes
-- Guest unit tests: `cd methods/guest && cargo test` (crate is outside the workspace).
-- Toolchain: `export PATH="$HOME/.risc0/bin:$PATH"`. dev-mode prove via `RISC0_DEV_MODE=1`.
-- dkimpy venv: `/tmp/dkimvenv/bin/python`.
+- Guest unit tests: `cd methods/guest && cargo test`. PATH += ~/.risc0/bin. dev: RISC0_DEV_MODE=1.
+- core now pulls ark-bn254/light-poseidon (compiles for both host x86 + guest riscv; guest already uses them).
+- dkimpy venv /tmp/dkimvenv for forger-key fixtures.

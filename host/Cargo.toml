@@ -16,6 +16,8 @@ base64 = "0.22"
 hex = "0.4"
 bincode = "1"
 anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 # DNS lookup is delegated to `dig` via std::process::Command. Pure-Rust
 # DNS clients (hickory, etc.) pull tokio; for a single TXT lookup the
 # subprocess is far simpler and per SPEC.md §6 step 2 the pubkey is

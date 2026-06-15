@@ -17,6 +17,10 @@ use crate::nullifier_store;
 pub struct VerifyArgs<'a> {
     pub proof_path: &'a Path,
     pub nullifier_store_path: &'a Path,
+    /// v2-A: the registry root the verifier trusts (hex). When `Some`, the
+    /// proof's echoed root must equal it. This is the trust anchor that closes
+    /// the v0 pubkey gap: a forger's proof carries a root that won't match.
+    pub pinned_registry_root: Option<&'a str>,
 }
 
 pub fn run(args: VerifyArgs) -> Result<()> {
@@ -33,6 +37,31 @@ pub fn run(args: VerifyArgs) -> Result<()> {
     let domain_str = String::from_utf8_lossy(&outputs.claimed_domain);
     let nullifier_hex = hex::encode(outputs.nullifier);
     println!("Receipt verifies. claimed_domain: {}", domain_str);
+
+    // v2-A: the registry root is the trust anchor. The honest proof echoes the
+    // root it proved membership against; the verifier checks it equals the root
+    // it pins. A forger can produce a valid-looking proof only against their
+    // OWN registry, whose root won't match — so the pin is what rejects them.
+    let root_hex = hex::encode(outputs.registry_root);
+    match args.pinned_registry_root {
+        Some(pinned) if root_hex.eq_ignore_ascii_case(pinned.trim()) => {
+            println!("Registry root: {} (pinned — OK)", root_hex);
+        }
+        Some(pinned) => {
+            bail!(
+                "REJECTED: registry root mismatch. proof root {} != pinned {}",
+                root_hex,
+                pinned.trim()
+            );
+        }
+        None => {
+            println!(
+                "Registry root: {} (NOT pinned — proof is not bound to a trusted registry; \
+                 pass --registry-root to enforce)",
+                root_hex
+            );
+        }
+    }
 
     // v1: disclosure is opt-in. An empty address means the prover proved
     // domain possession without naming anyone (the privacy-preserving mode).

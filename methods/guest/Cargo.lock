@@ -779,7 +779,11 @@ dependencies = [
 name = "nce-core"
 version = "0.0.0"
 dependencies = [
+ "ark-bn254",
+ "ark-ff",
+ "light-poseidon",
  "serde",
+ "sha2",
 ]
 
 [[package]]
