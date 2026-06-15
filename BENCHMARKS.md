@@ -35,6 +35,23 @@ pipeline works without paying the STARK prove cost.
 | 2026-05-12 | Intel Core Ultra 7 155H (11C / 22T), 32 GB, Fedora 44 | 3.0.5      | prod | 50:55.69         | 3,938,908 B (3.76 MB) | 0.21 s            |
 | 2026-06-13 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod | 32:19.50         | 3,938,908 B (3.76 MB) | 0.24 s            |
 | 2026-06-14 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v1, --disclose from) | 31:09.34 | 3,939,100 B (3.76 MB) | 0.22 s |
+| 2026-06-15 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership) | **2:06:51** | **15,754,360 B (15.0 MB)** | 0.90 s |
+
+The 2026-06-15 row is the **v2-A** guest (registry membership) on the same
+`real.eml`, proving against a 1-entry registry. It verified against the pinned
+root, disclosed no address (privacy default), and the nullifier is bit-identical
+to v0 (`20939a2d…`). **Cost finding: membership roughly 4×'d prove time
+(31 min → 2 h 7 min) and proof size (3.9 → 15.0 MB).** The cause is the Merkle
+fold: 1 leaf `Poseidon(5)` + 20 `Poseidon(2)` over **BN254**, which RISC0 does in
+unaccelerated software bignum — each Poseidon is many field multiplications, and
+21 of them rival the RSA-2048 verify. The design's assumption that "the Merkle
+fold is cheap vs RSA" was wrong for BN254-in-RISC0.
+
+**Optimization (future, not v2-A):** switch the *Merkle tree* hash to a
+RISC0-accelerated primitive (SHA-256 via the accelerator, or Poseidon over a
+RISC0-native field like BabyBear/Goldilocks). The leaf/nullifier can stay BN254
+for Circom compatibility; only the 20 node hashes need to be cheap. This should
+bring prove time back near the v1 baseline. Tracked as a v2-A perf follow-up.
 
 The 2026-06-14 row is the **v1** guest (identity-header disclosure) on the same
 `real.eml`, `--disclose from`. It revealed `mlayug@visionaryauto.ai` (ALIGNED
