@@ -89,6 +89,13 @@ pub fn verify_membership(
     if path.len() != REGISTRY_DEPTH {
         return false;
     }
+    // Witness hygiene: only the low REGISTRY_DEPTH bits of leaf_index are
+    // consumed by the fold; reject anything that sets higher bits so the
+    // index is unambiguous (no soundness impact — the fold is already pinned
+    // by leaf + siblings — but it removes a malleable witness.)
+    if (leaf_index as u64) >= (1u64 << REGISTRY_DEPTH) {
+        return false;
+    }
     let mut node = *leaf;
     for (level, sibling) in path.iter().enumerate() {
         node = if (leaf_index >> level) & 1 == 0 {
@@ -228,5 +235,14 @@ mod tests {
     fn wrong_path_length_rejected() {
         let l = leaf(b"x");
         assert!(!verify_membership(&l, &[[0u8; 32]; 3], 0, &l));
+    }
+
+    #[test]
+    fn leaf_index_above_depth_rejected() {
+        let leaves = vec![leaf(b"x"), leaf(b"y")];
+        let tree = RegistryTree::build(leaves.clone());
+        // Same low bits as a valid index 0, but a high bit set beyond DEPTH.
+        let bad_index = 1u32 << REGISTRY_DEPTH;
+        assert!(!verify_membership(&leaves[0], &tree.path(0), bad_index, &tree.root()));
     }
 }
