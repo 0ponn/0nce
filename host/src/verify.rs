@@ -43,15 +43,16 @@ pub fn run(args: VerifyArgs) -> Result<()> {
     // it pins. A forger can produce a valid-looking proof only against their
     // OWN registry, whose root won't match — so the pin is what rejects them.
     let root_hex = hex::encode(outputs.registry_root);
-    match args.pinned_registry_root {
-        Some(pinned) if root_hex.eq_ignore_ascii_case(pinned.trim()) => {
+    let pinned = match args.pinned_registry_root {
+        Some(p) if root_hex.eq_ignore_ascii_case(p.trim()) => {
             println!("Registry root: {} (pinned — OK)", root_hex);
+            true
         }
-        Some(pinned) => {
+        Some(p) => {
             bail!(
                 "REJECTED: registry root mismatch. proof root {} != pinned {}",
                 root_hex,
-                pinned.trim()
+                p.trim()
             );
         }
         None => {
@@ -60,8 +61,9 @@ pub fn run(args: VerifyArgs) -> Result<()> {
                  pass --registry-root to enforce)",
                 root_hex
             );
+            false
         }
-    }
+    };
 
     // v1: disclosure is opt-in. An empty address means the prover proved
     // domain possession without naming anyone (the privacy-preserving mode).
@@ -94,7 +96,17 @@ pub fn run(args: VerifyArgs) -> Result<()> {
         );
     }
     nullifier_store::append(args.nullifier_store_path, &nullifier_hex)?;
-    println!("ACCEPTED. Nullifier appended to {}.", args.nullifier_store_path.display());
+    if pinned {
+        println!("ACCEPTED. Nullifier appended to {}.", args.nullifier_store_path.display());
+    } else {
+        // Receipt + replay are fine, but without a pinned root the proof is not
+        // bound to a trusted registry — do not let this read as a trusted pass.
+        println!(
+            "ACCEPTED (receipt + replay OK) — but UNVERIFIED: not bound to a trusted \
+             registry root; pass --registry-root to enforce. Nullifier appended to {}.",
+            args.nullifier_store_path.display()
+        );
+    }
     Ok(())
 }
 
