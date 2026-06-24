@@ -1,11 +1,15 @@
-//! v2-A registry leaf + Poseidon Merkle membership.
+//! v2-A registry leaf + Merkle membership.
 //!
 //! Shared by the guest (which proves a witnessed DKIM key is a registry
-//! member) and the host (which builds the tree). Same primitive as the
-//! nullifier: `light-poseidon` over BN254, Circom/Iden3 params, with each
+//! member) and the host (which builds the tree). The **leaf** is a BN254
+//! Poseidon hash (`light-poseidon`, Circom/Iden3 params) of each
 //! variable-length input compressed to one field element via SHA-256 then
-//! reduced mod the field order. Each input occupies its own Poseidon lane,
-//! so there is no concatenation ambiguity.
+//! reduced mod the field order — same primitive as the nullifier, so it stays
+//! Circom-compatible. The **node** hash (2-to-1 compression up the tree) is
+//! SHA-256: a BN254 Poseidon node ran as unaccelerated software bignum in the
+//! RISC0 guest and 4×'d prove time (BENCHMARKS.md 2026-06-15); SHA-256 rides
+//! the accelerator and is ~2 orders cheaper. Only the tree shape changed —
+//! leaf semantics are unaffected.
 //!
 //! Leaf semantics are LOCKED at v2-A and must not change in v2-C — C may swap
 //! the tree shape (e.g. to an indexed tree for revocation) but a leaf always
@@ -38,13 +42,6 @@ fn fr_to_bytes(f: Fr) -> [u8; 32] {
     out
 }
 
-/// A 32-byte node value (the BE encoding of a field element, as produced by
-/// `fr_to_bytes`) back into a field element. Lossless: node values are always
-/// valid field elements < the field order.
-fn fr_from_bytes(b: &[u8; 32]) -> Fr {
-    Fr::from_be_bytes_mod_order(b)
-}
-
 /// `leaf = Poseidon(sep, domain, selector, n, e)`.
 pub fn registry_leaf(domain: &[u8], selector: &[u8], pubkey_n: &[u8], pubkey_e: &[u8]) -> [u8; 32] {
     let inputs = [
@@ -58,13 +55,18 @@ pub fn registry_leaf(domain: &[u8], selector: &[u8], pubkey_n: &[u8], pubkey_e: 
     fr_to_bytes(h.hash(&inputs).expect("poseidon hash (leaf)"))
 }
 
-/// 2-to-1 compression `node = Poseidon(left, right)`.
-pub fn poseidon2(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
-    let mut h = Poseidon::<Fr>::new_circom(2).expect("poseidon init t=3");
-    fr_to_bytes(
-        h.hash(&[fr_from_bytes(left), fr_from_bytes(right)])
-            .expect("poseidon hash (node)"),
-    )
+/// 2-to-1 Merkle compression `node = SHA-256(left || right)`.
+///
+/// SHA-256 (not BN254 Poseidon) so the fold rides the RISC0 SHA accelerator
+/// instead of unaccelerated bignum — see the module note and BENCHMARKS.md.
+/// Untagged 64-byte input matches the original untagged Poseidon(l,r); the
+/// fixed tree depth and `leaf_index < 2^DEPTH` bound (see `verify_membership`)
+/// defeat leaf/node confusion without a domain byte.
+pub fn node_hash(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
+    let mut h = Sha256::new();
+    h.update(left);
+    h.update(right);
+    h.finalize().into()
 }
 
 /// Domain-separated empty-leaf constant for padding unused slots.
@@ -99,9 +101,9 @@ pub fn verify_membership(
     let mut node = *leaf;
     for (level, sibling) in path.iter().enumerate() {
         node = if (leaf_index >> level) & 1 == 0 {
-            poseidon2(&node, sibling)
+            node_hash(&node, sibling)
         } else {
-            poseidon2(sibling, &node)
+            node_hash(sibling, &node)
         };
     }
     &node == root
@@ -123,7 +125,7 @@ impl RegistryTree {
         empties.push(empty_leaf());
         for level in 0..REGISTRY_DEPTH {
             let e = empties[level];
-            empties.push(poseidon2(&e, &e));
+            empties.push(node_hash(&e, &e));
         }
 
         let mut layers: Vec<Vec<[u8; 32]>> = Vec::with_capacity(REGISTRY_DEPTH + 1);
@@ -135,7 +137,7 @@ impl RegistryTree {
             while i < cur.len() {
                 let left = cur[i];
                 let right = cur.get(i + 1).copied().unwrap_or(empties[level]);
-                next.push(poseidon2(&left, &right));
+                next.push(node_hash(&left, &right));
                 i += 2;
             }
             if next.is_empty() {
@@ -170,6 +172,20 @@ mod tests {
 
     fn leaf(d: &[u8]) -> [u8; 32] {
         registry_leaf(d, b"sel", b"modulus", b"\x01\x00\x01")
+    }
+
+    #[test]
+    fn node_hash_is_sha256_of_concatenation() {
+        // Pin the node primitive: SHA-256(left || right). Guards against a
+        // silent regression back to BN254 Poseidon (the 4× prove-time cause).
+        let left = [0x11u8; 32];
+        let right = [0x22u8; 32];
+        let mut expected = Sha256::new();
+        expected.update(left);
+        expected.update(right);
+        let expected: [u8; 32] = expected.finalize().into();
+        assert_eq!(node_hash(&left, &right), expected);
+        assert_ne!(node_hash(&left, &right), node_hash(&right, &left));
     }
 
     #[test]
