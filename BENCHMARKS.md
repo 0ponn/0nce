@@ -37,6 +37,20 @@ pipeline works without paying the STARK prove cost.
 | 2026-06-14 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v1, --disclose from) | 31:09.34 | 3,939,100 B (3.76 MB) | 0.22 s |
 | 2026-06-15 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership, Poseidon Merkle) | **2:06:51** | **15,754,360 B (15.0 MB)** | 0.90 s |
 | 2026-06-24 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership, **SHA-256 Merkle**) | **48:43.86** | **5,601,584 B (5.34 MB)** | — |
+| 2026-06-25 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A SHA-256 Merkle + **sha2/rsa accelerators**) | **27:02.99** | **2,800,668 B (2.67 MB)** | — |
+
+The 2026-06-25 row applies the **RISC0 crypto accelerator patches** (0PO-388):
+guest `[patch.crates-io]` for `sha2 = sha2-v0.10.9-risczero.0` and
+`rsa = v0.9.9-risczero.0` (the rsa fork pulls `risc0-bigint2`, accelerating the
+RSA-2048 modexp — the dominant cost). **Both stable; no `unstable` feature.**
+Same i5/`real.eml`/risc0 3.0.5. Result: **48:43 → 27:02.99 (1.8× faster), 5.34 →
+2.67 MB (1.9× smaller).** Nullifier (`20939a2d…`) and root (`65ff99f4…`) are
+**bit-identical** to the 2026-06-24 row — accelerators change implementation, not
+math. **This clears the goal: the full v2-A registry-membership proof is now below
+the v1 *unaccelerated* baseline (31:09 / 3.94 MB) on both prove time and size** —
+i.e. the accelerators more than paid for the membership cost. (An accelerated-v1
+number isn't recorded; the honest claim is "accelerators overcame the membership
+cost and then some," not that membership is intrinsically free.)
 
 The 2026-06-24 row is the **Merkle perf fix**: the 20 BN254 Poseidon *node*
 hashes were swapped to SHA-256 (`core/src/registry.rs::node_hash`); the leaf and
