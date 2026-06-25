@@ -16,8 +16,11 @@ path = "src/main.rs"
 risc0-zkvm = { version = "3", default-features = false, features = ["std"] }
 nce-core = { path = "../../core" }
 base64 = "0.22"
-sha2 = { version = "0.10", features = ["oid"] }
-rsa = "0.9"
+# Pinned to the versions the RISC0 accelerator forks tag (see [patch.crates-io]
+# below). sha2 0.10.9 has a risczero tag; rsa's latest fork tag is 0.9.9 (no
+# 0.9.10 yet) — RSA-PKCS1v1.5 verify is unchanged across 0.9.9↔0.9.10.
+sha2 = { version = "=0.10.9", features = ["oid"] }
+rsa = "=0.9.9"
 light-poseidon = "0.3"
 ark-bn254 = "0.5"
 ark-ff = "0.5"
@@ -30,6 +33,17 @@ ark-ff = "0.5"
 #                             prove-time optimization, not adopted in v0.
 #   §4.7 (Poseidon nullifier): light-poseidon (BN254, Circom/Iden3 params),
 #                             ark-bn254 / ark-ff for the field type.
+
+# RISC0 cryptography accelerator patches (0PO-388). Guest-only — this manifest
+# is its own workspace root, so the patch affects only the guest build graph
+# (including the path-dep core's sha2). Both are STABLE precompiles; neither
+# needs the risc0-zkvm "unstable" feature (per RISC0 precompiles doc, only
+# tiny-keccak does). sha2 accelerates the body hash + the 20 SHA Merkle nodes;
+# rsa accelerates the RSA-2048 verify (the dominant cost) via RISC0 bigint.
+# Tags are version-pinned to the resolved crate versions — do not bump blindly.
+[patch.crates-io]
+sha2 = { git = "https://github.com/risc0/RustCrypto-hashes", tag = "sha2-v0.10.9-risczero.0" }
+rsa = { git = "https://github.com/risc0/RustCrypto-RSA", tag = "v0.9.9-risczero.0" }
 
 [dev-dependencies]
 rand = "0.8"
