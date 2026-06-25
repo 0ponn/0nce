@@ -47,7 +47,7 @@ Same i5/`real.eml`/risc0 3.0.5. Result: **48:43 → 27:02.99 (1.8× faster), 5.3
 2.67 MB (1.9× smaller).** Nullifier (`20939a2d…`) and root (`65ff99f4…`) are
 **bit-identical** to the 2026-06-24 row — accelerators change implementation, not
 math. **This clears the goal: the full v2-A registry-membership proof is now below
-the v1 *unaccelerated* baseline (31:09 / 3.94 MB) on both prove time and size** —
+the v1 *unaccelerated* baseline (31:09 / 3.76 MB) on both prove time and size** —
 i.e. the accelerators more than paid for the membership cost. (An accelerated-v1
 number isn't recorded; the honest claim is "accelerators overcame the membership
 cost and then some," not that membership is intrinsically free.)
@@ -61,29 +61,28 @@ clean comparison: **prove time 2:06:51 → 48:43.86 (2.6× faster), proof 15.0 �
 (`20939a2d…`) — the fix touches only the tree shape, not the leaf/nullifier — and
 the proof verifies (new root `65ff99f4…`, since the node hash changed the tree).
 
-It does **not** reach the v1 no-registry baseline (31:09 / 3.94 MB). The residual
-~17 min / ~1.66 MB over v1 is (i) the one remaining BN254 Poseidon — the `t=6`
-*leaf* hash — and (ii) 20 software SHA-256 node compressions, both still
-unaccelerated. The **RISC0 sha2 + bigint accelerator patches** (the separate
-prove-time lever noted below, tracked as the next maturity unit in
-`PLAN-maturity.md`) accelerate the SHA fold and the RSA-2048 verify and are
-expected to push prove time *below* the v1 baseline.
+It does **not** reach the v1 no-registry baseline (31:09 / 3.76 MB) on its own. The
+residual ~17 min / ~1.58 MB over v1 is (i) the one remaining BN254 Poseidon — the
+`t=6` *leaf* hash — and (ii) 20 software SHA-256 node compressions, both still
+unaccelerated at that point. The **RISC0 sha2 + bigint accelerator patches** (the
+separate prove-time lever) were **then applied — see the 2026-06-25 row** —
+accelerating the SHA fold and the RSA-2048 verify and pushing prove time *below* the
+v1 baseline.
 
 The 2026-06-15 row is the **v2-A** guest (registry membership) on the same
 `real.eml`, proving against a 1-entry registry. It verified against the pinned
 root, disclosed no address (privacy default), and the nullifier is bit-identical
 to v0 (`20939a2d…`). **Cost finding: membership roughly 4×'d prove time
-(31 min → 2 h 7 min) and proof size (3.9 → 15.0 MB).** The cause is the Merkle
+(31 min → 2 h 7 min) and proof size (3.76 → 15.0 MB).** The cause is the Merkle
 fold: 1 leaf `Poseidon(5)` + 20 `Poseidon(2)` over **BN254**, which RISC0 does in
 unaccelerated software bignum — each Poseidon is many field multiplications, and
 21 of them rival the RSA-2048 verify. The design's assumption that "the Merkle
 fold is cheap vs RSA" was wrong for BN254-in-RISC0.
 
-**Optimization (future, not v2-A):** switch the *Merkle tree* hash to a
-RISC0-accelerated primitive (SHA-256 via the accelerator, or Poseidon over a
-RISC0-native field like BabyBear/Goldilocks). The leaf/nullifier can stay BN254
-for Circom compatibility; only the 20 node hashes need to be cheap. This should
-bring prove time back near the v1 baseline. Tracked as a v2-A perf follow-up.
+**Optimization (done — 2026-06-24 row):** the *Merkle tree* node hash was switched
+to RISC0-accelerated SHA-256. The leaf/nullifier stay BN254 for Circom
+compatibility; only the 20 node hashes changed. This brought prove time toward the
+v1 baseline, and the 2026-06-25 accelerator row then pushed below it.
 
 The 2026-06-14 row is the **v1** guest (identity-header disclosure) on the same
 `real.eml`, `--disclose from`. It revealed `mlayug@visionaryauto.ai` (ALIGNED
@@ -112,14 +111,14 @@ Prove run details (from `/usr/bin/time -v`):
 
 - Dev mode (`RISC0_DEV_MODE=1`) produces fake receipts; numbers there
   are meaningless for the spec deliverable. Use the prod row above.
-- The ~51-minute prove time on a 22-thread laptop CPU is the cost of
+- The ~51-minute (laptop) / ~31-minute (i5) v1 prove time was the cost of
   doing RSA-2048 + SHA-256 + RFC 6376 canonicalization inside a STARK
-  WITHOUT the RISC0 accelerator patches. Two patches are the obvious
-  v1 prove-time levers, each documented in `methods/guest/Cargo.toml`:
+  WITHOUT the RISC0 accelerator patches. Those patches are **now applied**
+  (2026-06-25 row), in `methods/guest/Cargo.toml`:
     - `sha2` accelerator patch (RISC0's fork of RustCrypto/hashes).
-    - `rsa` / `num-bigint` bigint accelerator patch (RISC0's bigint2
-      syscalls, accessed via the patched num-bigint).
-  These typically deliver an order of magnitude or more on prove time
-  for this workload shape.
+    - `rsa` accelerator patch (RISC0's fork; pulls `risc0-bigint2` for the
+      RSA-2048 modexp).
+  Together with the SHA-256 Merkle node hash they took the full v2-A proof
+  below the v1 baseline.
 - Verify is ~210 ms with peak ~13 MB RSS; the STARK verifier is small
   and amortizes the proof artifact's cost completely.
