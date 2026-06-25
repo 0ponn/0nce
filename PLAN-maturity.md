@@ -7,8 +7,10 @@ crowded zkEmail prior art + §101; dropped). Drive the existing roadmap.
 
 ### 1. Merkle perf fix — SHA-256 node hash  ✅ DONE (2026-06-24)
 Result: 2:06:51 → 48:43.86 (2.6× faster), 15.0 → 5.34 MB (2.8× smaller), same i5,
-nullifier bit-identical (`20939a2d…`). Residual over v1 (leaf t6 Poseidon + 20
-unaccelerated SHA) closed by unit 2. See BENCHMARKS.md 2026-06-24 row.
+nullifier bit-identical (`20939a2d…`). This **narrows** the regression but does
+not reach the v1 baseline (31:09) — a residual ~17min remains (leaf t6 Poseidon +
+20 unaccelerated SHA), which unit 2 is expected to close. See BENCHMARKS.md
+2026-06-24 row.
 
 The v2-A benchmark (2026-06-15) recorded a 4× prove-time regression (31min → 2h7m)
 and proof-size blowup (3.9 → 15.0 MB), caused by 20 BN254 Poseidon node hashes in
@@ -16,7 +18,9 @@ the Merkle fold running as unaccelerated software bignum. Fix per BENCHMARKS.md:
 swap the **node hash** to SHA-256; keep `registry_leaf` + `empty_leaf` on BN254
 (leaf semantics LOCKED at v2-A, preserves Circom nullifier compat). SHA-256(l||r)
 is ~2 orders cheaper than a BN254 Poseidon permutation even unaccelerated, so this
-alone should return prove time to ~the v1 baseline.
+removes most of the Merkle regression. It does not on its own reach the v1
+baseline (the t=6 leaf Poseidon + 20 unaccelerated SHA remain); unit 2 closes
+that residual.
 
 - Scope: `core/src/registry.rs` only (host delegates to `RegistryTree`).
 - Delete `poseidon2` + `fr_from_bytes` (now unused). Add `node_hash(l,r)=SHA256(l||r)`.
