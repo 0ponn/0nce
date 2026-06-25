@@ -26,11 +26,19 @@ use crate::bytes_util::{is_wsp, trim_wsp};
 ///   2. Unfold continuation lines (CRLF followed by WSP → WSP only).
 ///   3. Collapse all WSP runs (across the now-unfolded value) to a single SP.
 ///   4. Strip WSP at end of value.
-///   5. Strip WSP around the colon (i.e. strip leading WSP of the value;
-///      the field name has no trailing WSP by construction).
+///   5. Strip WSP around the colon: leading WSP of the value AND any trailing
+///      WSP of the field name. RFC 6376 §3.4.2: "Delete any WSP characters
+///      remaining before and after the colon." A raw `From :` header carries
+///      that pre-colon WSP into `name`; stripping it here keeps a malformed-
+///      but-signable header verifying instead of being falsely rejected.
 ///
 /// Output format: `<lowercased name>`:`<canonicalized value>`\r\n
 pub fn canonicalize_header_relaxed(name: &[u8], value: &[u8]) -> Vec<u8> {
+    // §3.4.2 "before the colon": drop trailing WSP the caller may have left on
+    // the field name. (A header name has no leading WSP — that would be a
+    // continuation line — so trim_wsp's leading strip is a harmless no-op.)
+    let name = trim_wsp(name);
+
     let unfolded = unfold(value);
     let collapsed = collapse_wsp(&unfolded);
     let trimmed = trim_wsp(&collapsed);
@@ -196,6 +204,27 @@ mod tests {
         assert_eq!(
             canonicalize_header_relaxed(b"From", b"  alice@example.com"),
             b"from:alice@example.com\r\n".to_vec()
+        );
+    }
+
+    #[test]
+    fn header_strips_wsp_before_colon() {
+        // RFC 6376 §3.4.2: WSP before the colon (trailing WSP on the field
+        // name) must be deleted. A raw "From : x" must canonicalize to
+        // "from:x", not "from :x" — else a legitimately-signed message is
+        // falsely rejected. Regression for the Kosmos T1 conformance finding.
+        assert_eq!(
+            canonicalize_header_relaxed(b"From ", b"alice@example.com"),
+            b"from:alice@example.com\r\n".to_vec()
+        );
+        assert_eq!(
+            canonicalize_header_relaxed(b"From\t", b"alice@example.com"),
+            b"from:alice@example.com\r\n".to_vec()
+        );
+        // Both sides of the colon stripped together.
+        assert_eq!(
+            canonicalize_header_relaxed(b"Subject \t", b"  hi  "),
+            b"subject:hi\r\n".to_vec()
         );
     }
 
