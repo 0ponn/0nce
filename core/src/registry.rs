@@ -59,9 +59,15 @@ pub fn registry_leaf(domain: &[u8], selector: &[u8], pubkey_n: &[u8], pubkey_e: 
 ///
 /// SHA-256 (not BN254 Poseidon) so the fold rides the RISC0 SHA accelerator
 /// instead of unaccelerated bignum — see the module note and BENCHMARKS.md.
-/// Untagged 64-byte input matches the original untagged Poseidon(l,r); the
-/// fixed tree depth and `leaf_index < 2^DEPTH` bound (see `verify_membership`)
-/// defeat leaf/node confusion without a domain byte.
+/// Untagged 64-byte input matches the original untagged Poseidon(l,r). Leaf/node
+/// confusion is defeated not by a domain byte but by three properties enforced
+/// together (independent soundness audit, 2026-06-25): fixed-depth verification
+/// (the fold is always exactly `REGISTRY_DEPTH` hashes, so no variable-depth
+/// re-labeling of an internal node as a leaf), in-circuit leaf derivation (the
+/// guest computes the leaf via `registry_leaf`, so a prover can't submit an
+/// arbitrary 32-byte node value as a leaf), and SHA-256 second-preimage
+/// resistance. The `leaf_index < 2^DEPTH` check is witness hygiene, not the
+/// load-bearing defense.
 pub fn node_hash(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
     let mut h = Sha256::new();
     h.update(left);

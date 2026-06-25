@@ -48,6 +48,7 @@ The verifier does NOT learn: the email body, any header other than the domain fi
 - The proof does NOT claim the email is recent.
 - The proof does NOT claim the prover currently works at `claimed_domain`.
 - The proof claims only that the prover, at some point, came into possession of a message DKIM-signed by `claimed_domain`. Anyone who ever received such a message — including a forwarded copy — can produce this proof.
+- With multiple DKIM-Signature headers, only the header at the witnessed `dkim_header_index` is considered (§4 step 1, §7). The proof therefore attests to that one signature, chosen by the prover among those that actually verify against `claimed_domain`; it asserts nothing about the other signatures and does not over-claim (it still proves only that at least one valid `claimed_domain` signature exists).
 
 This last point is critical and must be documented in any user-facing material. v0 deliberately does not address it. Future versions can tighten it via fresher-than-X-days constraints, recipient-binding via opaque headers, or org-issued credentials.
 

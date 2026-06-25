@@ -35,12 +35,12 @@ that residual.
   `real.eml` to record the new prove-time/size in BENCHMARKS.md. Nullifier must stay
   bit-identical (`20939a2d…`) — it's leaf/BN254, untouched.
 
-### 2. RISC0 accelerator patches (separate lever, pushes BELOW v1 baseline)
-Apply RISC0's `sha2` + bigint (`num-bigint-dig`) accelerator patches in
-`methods/guest/Cargo.toml [patch.crates-io]`. Accelerates RSA-2048 verify + body
-SHA-256 + (after unit 1) the SHA Merkle nodes. Needs version-pinned patch tags
-matching `risc0-zkvm` 3.x — look up current tags, do not guess. No math change →
-proof/nullifier stay bit-identical; validate with a prod prove.
+### 2. RISC0 accelerator patches (separate lever, pushes BELOW v1 baseline)  ✅ DONE (2026-06-25, PR #5)
+Applied stable `sha2` (sha2-v0.10.9-risczero.0) + `rsa` (v0.9.9-risczero.0, pulls
+`risc0-bigint2`) patches in `methods/guest/Cargo.toml [patch.crates-io]` — NO
+`unstable` feature needed. Result: 48:43 → **27:02.99** (1.8×), 5.34 → **2.67 MB**
+(1.9×), nullifier/root bit-identical, **below the v1 baseline (31:09 / 3.76 MB)**.
+See BENCHMARKS.md 2026-06-25 row.
 
 ### 3. v2-B — DNSSEC-in-ZK (one record authentic)
 Prove one DKIM TXT record is authentic via the DNSSEC chain in-ZK, removing the
