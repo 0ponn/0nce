@@ -19,6 +19,7 @@ Read this carefully. These are deliberately **not** claims the proof makes:
 - The proof does **not** claim the email is recent.
 - The proof does **not** claim the prover currently works at `claimed_domain`.
 - The proof claims only that the prover, at some point, came into possession of a message DKIM-signed by `claimed_domain`. **Anyone who ever received such a message — including a forwarded copy — can produce this proof.**
+- If the email carries **multiple DKIM signatures**, the proof attests to exactly one of them — the signature at the prover-witnessed offset — and says nothing about the others. The prover may choose which one, but only among signatures that genuinely verify against `claimed_domain`, so this does not let them over-claim: it still proves only that *at least one* valid `claimed_domain` signature exists. (Confirmed by independent soundness audit, 2026-06-25.)
 
 Many ZK-Email projects describe their proofs in terms of the first four bullets. This project deliberately does not. The proof is honest about what it actually shows.
 
