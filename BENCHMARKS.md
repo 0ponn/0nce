@@ -35,7 +35,25 @@ pipeline works without paying the STARK prove cost.
 | 2026-05-12 | Intel Core Ultra 7 155H (11C / 22T), 32 GB, Fedora 44 | 3.0.5      | prod | 50:55.69         | 3,938,908 B (3.76 MB) | 0.21 s            |
 | 2026-06-13 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod | 32:19.50         | 3,938,908 B (3.76 MB) | 0.24 s            |
 | 2026-06-14 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v1, --disclose from) | 31:09.34 | 3,939,100 B (3.76 MB) | 0.22 s |
-| 2026-06-15 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership) | **2:06:51** | **15,754,360 B (15.0 MB)** | 0.90 s |
+| 2026-06-15 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership, Poseidon Merkle) | **2:06:51** | **15,754,360 B (15.0 MB)** | 0.90 s |
+| 2026-06-24 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership, **SHA-256 Merkle**) | **48:43.86** | **5,601,584 B (5.34 MB)** | — |
+
+The 2026-06-24 row is the **Merkle perf fix**: the 20 BN254 Poseidon *node*
+hashes were swapped to SHA-256 (`core/src/registry.rs::node_hash`); the leaf and
+nullifier stay BN254 Poseidon (LOCKED v2-A leaf semantics, Circom-compatible).
+Same i5, same `real.eml`, same risc0 3.0.5 as the 2026-06-15 row, so this is a
+clean comparison: **prove time 2:06:51 → 48:43.86 (2.6× faster), proof 15.0 →
+5.34 MB (2.8× smaller).** The nullifier is bit-identical
+(`20939a2d…`) — the fix touches only the tree shape, not the leaf/nullifier — and
+the proof verifies (new root `65ff99f4…`, since the node hash changed the tree).
+
+It does **not** reach the v1 no-registry baseline (31:09 / 3.94 MB). The residual
+~17 min / ~1.66 MB over v1 is (i) the one remaining BN254 Poseidon — the `t=6`
+*leaf* hash — and (ii) 20 software SHA-256 node compressions, both still
+unaccelerated. The **RISC0 sha2 + bigint accelerator patches** (the separate
+prove-time lever noted below, tracked as the next maturity unit in
+`PLAN-maturity.md`) accelerate the SHA fold and the RSA-2048 verify and are
+expected to push prove time *below* the v1 baseline.
 
 The 2026-06-15 row is the **v2-A** guest (registry membership) on the same
 `real.eml`, proving against a 1-entry registry. It verified against the pinned
