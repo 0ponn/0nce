@@ -1,0 +1,8 @@
+US federal .gov census (n=1343), validated three ways (delv + DS-record cross-check + serial re-validation):
+  validates to root        1019  76%   (genuinely DNSSEC-protected)
+  deployed but broken       108   8%   (DS published in .gov, zone signatures fail to validate)
+  unsigned (no DS)          216  16%   (no DNSSEC)
+  deployed (has DS)        1127  84%   (= validates + broken)
+Note: the original parallel-delv census reported 1012 validating (75.4%); serial re-validation of the
+115 DS-having domains it marked "unsigned" found only 7 true false-negatives (now 1019/76%); the other
+108 are genuinely broken DNSSEC. Independent random DS-presence sampling corroborated ~deployment.

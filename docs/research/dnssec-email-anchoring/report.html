@@ -10,7 +10,7 @@
 <style>
   :root{
     --paper:#fbfaf6; --ink:#1c1b18; --body:#2c2a26; --soft:#74705f; --faint:#e4dfd1; --hair:#efeadd;
-    --rule:#211f1a; --alarm:#8c211c; --good:#0c5d57; --accent:#8c211c;
+    --rule:#211f1a; --alarm:#8c211c; --good:#0c5d57; --broken:#9a7b1f; --accent:#8c211c;
   }
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
@@ -105,6 +105,10 @@
   .refs ol{margin:0;padding-left:1.5em;font:400 13.5px/1.65 "Spline Sans",sans-serif;color:var(--soft)}
   .refs li{margin:4px 0}
   .colophon{margin-top:30px;font:500 12px/1.6 "Spline Sans Mono",monospace;color:var(--soft);letter-spacing:.02em}
+  .stack{display:flex;height:17px;background:#eee7d6;overflow:hidden}
+  .stack>span{display:block;height:100%}
+  .stackkey{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:11px;font:500 13px/1.4 "Spline Sans",sans-serif;color:#4a463c}
+  .stackkey i{display:inline-block;width:11px;height:11px;margin-right:7px;vertical-align:-1px}
   @media(max-width:560px){.page{padding:16px 20px 80px}h1{font-size:31px}.keys{flex-wrap:wrap;gap:18px}
     .keys .k{flex:0 0 44%}.keys .num{font-size:32px}.cols{columns:1}.b .lab{flex-basis:120px;font-size:14px}}
 </style>
@@ -121,7 +125,7 @@
   <span style="font-family:'Spline Sans Mono',monospace">delv</span> from the IANA root anchor</p>
 
   <div class="keys">
-    <div class="k"><div class="num">75.4%</div><div class="cap">of 1,343 federal
+    <div class="k"><div class="num">76%</div><div class="cap">of 1,343 federal
       <span class="mono">.gov</span> domains validate to root</div></div>
     <div class="k bad"><div class="num">4.2%</div><div class="cap">have a DKIM email key that anchors
       to root</div></div>
@@ -137,7 +141,7 @@
     harder question is whether that key is itself cryptographically anchored — whether an adversary who
     can spoof DNS could simply substitute it. Measuring validation from the root anchor, four results
     stand out.</p>
-    <p><strong>US federal civilian DNSSEC is strong</strong> — 75.4% of all 1,343
+    <p><strong>US federal civilian DNSSEC is strong</strong> — 76% of all 1,343
     <span class="mono">.gov</span> domains validate to root, above the ~61% of international flagship
     government domains sampled. <strong>The military lags its own civilian government</strong>, and the
     unsigned set includes the organizations chartered for cyber defense. <strong>The email key is almost
@@ -158,8 +162,9 @@
     through a CNAME into an unsigned provider zone does not.</p>
     <p>Three measurement artifacts were caught and corrected, each of which would have overstated
     success: a non-validating test resolver, the two-verdict output <span class="mono">delv</span> gives
-    for CNAME chains, and unstable verdicts under parallel load. A serial re-check of fifteen
-    unsigned-classified domains found zero false negatives.</p>
+    for CNAME chains, and unstable verdicts under parallel load. The federal validating rate was further confirmed against an independent census of DS records in
+    the <span class="mono">.gov</span> parent zone, and every domain whose two signals disagreed was
+    re-validated serially.</p>
   </section>
 
   <section>
@@ -169,13 +174,25 @@
       <caption><span class="cnum">Table 1</span>Civilian census (n=1,343) versus military sample (n=17).</caption>
       <thead><tr><th>Measure</th><th class="r">Civilian .gov</th><th class="r">Military .mil</th></tr></thead>
       <tbody>
-        <tr><td>Zone DNSSEC-validated to root</td><td class="r">75.4%</td><td class="r">~47%</td></tr>
+        <tr><td>Zone DNSSEC — validates to root</td><td class="r">76%</td><td class="r">~47%</td></tr>
         <tr><td>Publishes a DKIM key</td><td class="r">316</td><td class="r">—</td></tr>
         <tr><td>— delegated by CNAME to an unsigned zone</td><td class="r">76%</td><td class="r">all</td></tr>
         <tr><td>DKIM key anchored to root</td><td class="r">4.2%</td><td class="r">0</td></tr>
       </tbody>
     </table>
     </div>
+
+    <figure>
+      <figcaption><span class="cnum">Figure 2</span>All 1,343 federal <span class="mono" style="text-transform:none">.gov</span> domains by DNSSEC state. Deployment is high; configuration is not always correct.</figcaption>
+      <div class="stack"><span style="width:75.9%;background:var(--ink)"></span><span style="width:8.0%;background:var(--broken)"></span><span style="width:16.1%;background:#d9d2c1"></span></div>
+      <div class="stackkey"><span><i style="background:var(--ink)"></i>Validates to root — 76%</span><span><i style="background:var(--broken)"></i>Deployed but broken — 8%</span><span><i style="background:#d9d2c1"></i>Unsigned — 16%</span></div>
+    </figure>
+
+    <p>Beyond the 76% that validate, a further <strong>8% (108 domains) have DNSSEC deployed but
+    broken</strong> — a DS record published in <span class="mono">.gov</span> while the zone's own
+    signatures fail to validate. This protects nothing and can make a domain unreachable for resolvers
+    that enforce validation. Only 16% are wholly unsigned. The validating rate has roughly doubled since
+    2023 (~36%) — the federal mandate is working, unevenly.</p>
 
     <div class="pull">
       <h4>The cyber-mission military is unsigned</h4>
@@ -204,7 +221,7 @@
         <div class="b good"><div class="lab">National DNS registries</div>
           <div class="track"><span style="width:92%"></span></div><div class="val">92%</div></div>
         <div class="b"><div class="lab">US federal <span class="mono">.gov</span></div>
-          <div class="track"><span style="width:75%"></span></div><div class="val">75%</div></div>
+          <div class="track"><span style="width:76%"></span></div><div class="val">76%</div></div>
         <div class="b"><div class="lab">Flagship gov't portals</div>
           <div class="track"><span style="width:61%"></span></div><div class="val">61%</div></div>
         <div class="b bad"><div class="lab">US <span class="mono">.mil</span></div>
@@ -260,10 +277,10 @@
     outside the registries, vanishing. The same census names the small set of domains where such a proof
     is demonstrable today.</p>
     <p class="small-soft" style="margin-top:1.2em;max-width:62ch">
-    <strong style="color:var(--ink)">Limitations.</strong> The civilian figure (75.4%) is ~2× the last
-    published measurement (~38%, Sept 2023)<sup><a href="#r4">4</a></sup> — likely real mandate-driven
-    growth, but a June-2026 snapshot by this method, with the NIST monitor<sup><a href="#r5">5</a></sup>
-    as authoritative reference. DKIM presence was probed via ~10 common selectors and is undercounted;
+    <strong style="color:var(--ink)">Limitations.</strong> The civilian validating rate (76%) was
+    re-confirmed three ways — controls, an independent DS-record census, and serial re-validation of
+    every flagged domain — and is ~2× the 2023 measurement (~36%)<sup><a href="#r4">4</a></sup>, a real
+    mandate-driven surge; NIST<sup><a href="#r5">5</a></sup> is the authoritative monitor. DKIM presence was probed via ~10 common selectors and is undercounted;
     international coverage is one flagship domain per country; a single snapshot.</p>
   </section>
 
