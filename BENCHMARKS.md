@@ -38,8 +38,18 @@ pipeline works without paying the STARK prove cost.
 | 2026-06-15 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership, Poseidon Merkle) | **2:06:51** | **15,754,360 B (15.0 MB)** | 0.90 s |
 | 2026-06-24 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A, registry membership, **SHA-256 Merkle**) | **48:43.86** | **5,601,584 B (5.34 MB)** | — |
 | 2026-06-25 | Intel Core i5-11600K (6C / 12T) @ 3.9 GHz, 31 GB, Fedora 44 | 3.0.5  | prod (v2-A SHA-256 Merkle + **sha2/rsa accelerators**) | **27:02.99** | **2,800,668 B (2.67 MB)** | — |
+| 2026-06-25 | i5-11600K + **NVIDIA RTX 4070 Ti SUPER** (16 GB), Fedora 44 | 3.0.5  | prod (v2-A accel, **GPU prove**, `--features cuda`) | **0:12.09** | **2,800,668 B (2.67 MB)** | — |
 
-The 2026-06-25 row applies the **RISC0 crypto accelerator patches** (0PO-388):
+The second 2026-06-25 row is the same accelerated guest proven on the **GPU**
+(RISC0 `cuda` feature) instead of the CPU, same box: **27:02.99 → 0:12.09
+(~135×)**, host RAM 9.6 GB → 0.6 GB (work moved to VRAM; GPU confirmed 90–100%
+util, ~12 GB VRAM peak). Proof is **byte-identical** and the nullifier unchanged
+(`20939a2d…`) — GPU proving changes the prover backend, not the receipt. The CUDA
+build toolchain is fully userspace/isolated (no system or driver changes); setup +
+the Fedora-44 gotchas are in `docs/gpu-proving.md`. This is the largest single
+prove-time lever by far and makes the heavier v2-B/C chain proofs cheap.
+
+The first 2026-06-25 row applies the **RISC0 crypto accelerator patches** (0PO-388):
 guest `[patch.crates-io]` for `sha2 = sha2-v0.10.9-risczero.0` and
 `rsa = v0.9.9-risczero.0` (the rsa fork pulls `risc0-bigint2`, accelerating the
 RSA-2048 modexp — the dominant cost). **Both stable; no `unstable` feature.**
