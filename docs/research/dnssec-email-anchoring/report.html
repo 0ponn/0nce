@@ -3,190 +3,300 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Email Trust-Anchoring Across Governments — A DNS Census</title>
+<title>Email Trust-Anchoring in Government DNS — A Census</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#10151c; --muted:#5a6675; --line:#e3e8ef; --bg:#f7f9fc; --card:#fff;
-    --good:#137a4b; --goodbg:#e6f4ec; --bad:#b3261e; --badbg:#fbeae9;
-    --warn:#8a5a00; --warnbg:#fbf1dd; --accent:#1b4d8f; --accentbg:#e8f0fb;
+    --paper:#f7f3ea; --ink:#23201a; --soft:#6c6456; --faint:#d9d0bf;
+    --rule:#2a261f; --accent:#7c1d1a; --accentsoft:#a8534f;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-font-smoothing:antialiased}
-  .wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
-  header{padding:54px 0 30px;border-bottom:1px solid var(--line)}
-  .kicker{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
-  h1{font-size:33px;line-height:1.18;margin:.35em 0 .25em;letter-spacing:-.02em}
-  .sub{color:var(--muted);font-size:17px;max-width:64ch}
-  .meta{margin-top:18px;font-size:13px;color:var(--muted)} .meta b{color:var(--ink)}
-  h2{font-size:23px;margin:48px 0 8px;letter-spacing:-.01em;padding-top:8px}
-  h3{font-size:16px;margin:24px 0 6px}
-  p{margin:.5em 0} .lead{font-size:18px}
-  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
-  .stat{font-size:33px;font-weight:800;letter-spacing:-.02em;line-height:1}
-  .stat.g{color:var(--good)} .stat.b{color:var(--bad)} .stat.w{color:var(--warn)}
-  .card .lbl{font-size:13px;color:var(--muted);margin-top:8px}
-  .callout{border-radius:12px;padding:18px 20px;margin:18px 0;border:1px solid}
-  .callout.bad{background:var(--badbg);border-color:#f1c5c1}
-  .callout.good{background:var(--goodbg);border-color:#c2e3d0}
-  .callout.warn{background:var(--warnbg);border-color:#ecd9a8}
-  .callout h3{margin:0 0 6px;font-size:16px}
-  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;background:var(--card);
-    border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{background:#eef2f7;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-  tr:last-child td{border-bottom:0}
-  td.num{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
-  .bar{height:9px;border-radius:5px;background:#e7ecf3;overflow:hidden;margin-top:5px}
-  .bar>span{display:block;height:100%;border-radius:5px}
-  .barrow{display:grid;grid-template-columns:170px 1fr 54px;gap:10px;align-items:center;margin:7px 0;font-size:14px}
-  .barrow .t{height:14px;border-radius:4px;background:#e7ecf3;overflow:hidden}
-  .barrow .t>span{display:block;height:100%}
-  .barrow .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:13px}
-  .pillrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-  .pill{font:12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:5px 8px;border-radius:6px;border:1px solid}
-  .pill.bad{background:var(--badbg);border-color:#f1c5c1;color:var(--bad)}
-  .pill.good{background:var(--goodbg);border-color:#c2e3d0;color:var(--good)}
-  code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef2f7;padding:1px 5px;border-radius:4px}
-  ol.steps{padding-left:20px} ol.steps li{margin:5px 0}
-  .foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
-  .foot a{color:var(--accent)}
-  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--accentbg);color:var(--accent);vertical-align:middle}
-  @media(max-width:620px){.cards{grid-template-columns:1fr}h1{font-size:27px}.barrow{grid-template-columns:120px 1fr 48px}}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:400 18.5px/1.62 "Newsreader",Georgia,"Times New Roman",serif;
+    font-optical-sizing:auto;opacity:0;animation:fade .7s ease forwards}
+  @keyframes fade{to{opacity:1}}
+  .page{max-width:680px;margin:0 auto;padding:18px 30px 110px}
+  ::selection{background:#e7dcc6}
+
+  /* ---- masthead ---- */
+  .eyebrow{font:500 12px/1.4 "Spline Sans Mono",monospace;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--soft)}
+  h1{font-weight:500;font-size:38px;line-height:1.1;letter-spacing:-.012em;margin:.5em 0 .28em}
+  .deck{font-size:20px;line-height:1.42;color:#3b362c;font-style:italic;max-width:34em;margin:0}
+  .byline{margin:22px 0 0;font-size:14.5px;color:var(--soft)}
+  .byline b{color:var(--ink);font-weight:500;font-style:normal}
+  .rule-top{border:0;border-top:2px solid var(--rule);margin:26px 0 0}
+  .rule-thin{border:0;border-top:1px solid var(--faint);margin:0}
+
+  /* ---- abstract ---- */
+  .abstract{margin:30px 0 6px;padding-left:20px;border-left:2px solid var(--faint)}
+  .abstract .lab{font:500 11.5px/1 "Spline Sans Mono",monospace;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--soft);display:block;margin-bottom:8px}
+  .abstract p{margin:0;font-size:17px;color:#332f27}
+
+  /* ---- sections ---- */
+  section{margin-top:40px}
+  h2{font-weight:600;font-size:15px;letter-spacing:.02em;margin:0 0 2px;
+    text-transform:uppercase;font-family:"Spline Sans Mono",monospace}
+  h2 .n{color:var(--accent);margin-right:.7em}
+  h3{font-weight:600;font-size:19px;margin:26px 0 4px;letter-spacing:-.01em}
+  p{margin:.7em 0;text-align:justify;hyphens:auto}
+  p.note{text-align:left}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accentsoft)}
+  strong{font-weight:600}
+  em{font-style:italic}
+  .mono,code{font:400 .86em/1.5 "Spline Sans Mono",monospace;color:#403a30;
+    background:transparent;letter-spacing:-.01em}
+  .lead-in{font-variant:small-caps;letter-spacing:.03em;font-weight:500}
+
+  /* ---- tables: booktabs (rules, no gridlines, no zebra) ---- */
+  .tbl{margin:22px 0 6px}
+  table{width:100%;border-collapse:collapse;font-size:16px}
+  caption{caption-side:top;text-align:left;font-size:13.5px;color:var(--soft);
+    margin-bottom:9px;font-style:italic}
+  caption b{font-style:normal;color:var(--ink);font-weight:600;font-family:"Spline Sans Mono",monospace;
+    font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-right:.5em}
+  thead th{font:500 12px/1.3 "Spline Sans Mono",monospace;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--soft);text-align:left;padding:0 10px 7px;border-bottom:1.5px solid var(--rule)}
+  thead th.r,tbody td.r{text-align:right}
+  table{border-top:2px solid var(--rule)}
+  tbody td{padding:9px 10px;border-bottom:1px solid var(--faint);vertical-align:baseline}
+  tbody tr:last-child td{border-bottom:2px solid var(--rule)}
+  td.r{font-family:"Spline Sans Mono",monospace;font-size:14.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* ---- figure: horizontal bars ---- */
+  figure{margin:24px 0 6px}
+  figcaption{font-size:13.5px;color:var(--soft);font-style:italic;margin-top:11px;text-align:left}
+  figcaption b{font-style:normal;color:var(--ink);font-weight:600;font-family:"Spline Sans Mono",monospace;
+    font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-right:.5em}
+  .barfig{border-top:1px solid var(--faint);padding-top:6px}
+  .b{display:grid;grid-template-columns:188px 1fr 46px;align-items:center;gap:14px;padding:8px 0;
+    border-bottom:1px solid #ece4d4}
+  .b:last-child{border-bottom:0}
+  .b .lab{font-size:15px;line-height:1.25;text-align:right;color:#332f27}
+  .b .lab .mono{font-size:13px}
+  .b .track{height:7px;background:#e9e0cf}
+  .b .track>span{display:block;height:100%;background:var(--ink)}
+  .b.alarm .track>span{background:var(--accent)}
+  .b .val{font:500 13.5px/1 "Spline Sans Mono",monospace;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* ---- aside / note block ---- */
+  .aside{margin:22px 0;padding:16px 0 16px 20px;border-left:2px solid var(--accent)}
+  .aside.neutral{border-left-color:var(--faint)}
+  .aside h4{margin:0 0 5px;font-size:16px;font-weight:600}
+  .aside p{margin:.35em 0;text-align:left}
+
+  /* ---- two-column lists (signed/unsigned) — flow, not a grid card ---- */
+  .cols{columns:2;column-gap:34px;font-size:15px;margin:10px 0}
+  .cols.single{columns:1}
+  .domlist{list-style:none;padding:0;margin:0}
+  .domlist li{break-inside:avoid;padding:2.5px 0;line-height:1.35}
+  .domlist .mono{font-size:13.5px}
+  .tick{color:var(--soft)} .cross{color:var(--accent)}
+
+  /* ---- footnotes / refs ---- */
+  sup.fn{font-size:.7em;font-feature-settings:"sups";vertical-align:super;line-height:0}
+  sup.fn a{border:0;color:var(--accent)}
+  .refs{margin-top:46px;border-top:1px solid var(--faint);padding-top:14px}
+  .refs ol{margin:0;padding-left:1.4em;font-size:13.5px;line-height:1.6;color:var(--soft)}
+  .refs li{margin:3px 0}
+  .colophon{margin-top:34px;font:400 12.5px/1.6 "Spline Sans Mono",monospace;color:var(--soft);
+    letter-spacing:.02em}
+  @media(max-width:560px){.page{padding:14px 20px 80px}h1{font-size:30px}.cols{columns:1}
+    .b{grid-template-columns:120px 1fr 42px;gap:10px}.b .lab{font-size:13.5px}}
 </style>
 </head>
 <body>
-<div class="wrap">
-<header>
-  <div class="kicker">DNS Security Census · 0pon · June 2026</div>
-  <h1>Governments sign their zones. Almost none anchor their email keys.</h1>
-  <p class="sub">A full census of all 1,343 US federal <code>.gov</code> domains, a <code>.mil</code>
-  sample, and a ~30-country international landscape — measuring whether each domain's DNSSEC chain,
-  and its DKIM email-signing key, actually validate to the DNS root.</p>
-  <div class="meta"><b>Method:</b> independent validation from the IANA root anchor (<code>delv</code>).
-  <b>Scope:</b> <code>.gov</code> = full census; <code>.mil</code> &amp; international = samples.</div>
-</header>
+<article class="page">
 
-<h2>Bottom line</h2>
-<p class="lead">The hypothesis was a US-vs-EU DNSSEC deficit. The data refutes it. US federal civilian
-DNSSEC is <b>strong — and ahead of</b> the international flagship-government sample. The real divide is
-<b>operator culture, not geography</b>: DNS registries do it right everywhere; governments and senders
-mostly don't. The US-specific weak spot is the <b>military</b>, and email-key anchoring is missing
-<b>worldwide</b>.</p>
+  <div class="eyebrow">0pon · Technical Report · DNS Security · June 2026</div>
+  <h1>Governments sign their zones.<br>Almost none anchor their email keys.</h1>
+  <p class="deck">A census of US federal <span class="mono">.gov</span> domains, a
+  <span class="mono">.mil</span> sample, and a thirty-country landscape, testing whether each
+  domain's DNSSEC chain — and the DKIM key that authenticates its email — validates to the DNS root.</p>
+  <p class="byline"><b>Michael Layug</b>, 0pon &nbsp;·&nbsp; June 2026 &nbsp;·&nbsp;
+  validation by <span class="mono">delv</span> from the IANA root trust anchor</p>
+  <hr class="rule-top">
 
-<div class="cards">
-  <div class="card"><div class="stat g">75.4%</div><div class="lbl">of 1,343 US federal <code>.gov</code> domains validate to root</div></div>
-  <div class="card"><div class="stat b">4.2%</div><div class="lbl">have a DKIM email key that actually anchors to root</div></div>
-  <div class="card"><div class="stat w">~47%</div><div class="lbl">of sampled <code>.mil</code> domains are DNSSEC-signed</div></div>
-</div>
-
-<h2>Part 1 — US federal deep-dive <span class="tag">census · n=1,343</span></h2>
-<table>
-  <tr><th>Metric</th><th>Result</th><th></th></tr>
-  <tr><td>Zone DNSSEC-signed (validated to root)</td><td class="num">1,012 / 1,343 · 75.4%</td>
-      <td style="width:32%"><div class="bar"><span style="width:75.4%;background:var(--good)"></span></div></td></tr>
-  <tr><td>DKIM outsourced via CNAME to an unsigned SaaS zone</td><td class="num">239 of 316 · 76%</td>
-      <td><div class="bar"><span style="width:76%;background:var(--warn)"></span></div></td></tr>
-  <tr><td><b>DKIM key anchored to root</b> (direct + validated)</td><td class="num">56 · 4.2%</td>
-      <td><div class="bar"><span style="width:4.2%;background:var(--bad)"></span></div></td></tr>
-</table>
-
-<div class="callout bad">
-  <h3>The finding that should sting: the cyber-mission military isn't signed</h3>
-  <p>In the <code>.mil</code> sample (~47% signed overall), these are <b>not DNSSEC-signed</b> —
-  each individually verifiable, so it holds regardless of sample size:</p>
-  <div class="pillrow">
-    <span class="pill bad">army.mil</span><span class="pill bad">navy.mil</span><span class="pill bad">af.mil</span>
-    <span class="pill bad">marines.mil</span><span class="pill bad">spaceforce.mil</span>
-    <span class="pill bad">cybercom.mil</span><span class="pill bad">disa.mil</span>
-    <span class="pill bad">pacom.mil</span><span class="pill bad">dla.mil</span>
+  <div class="abstract">
+    <span class="lab">Abstract</span>
+    <p>The premise — a transatlantic DNSSEC gap disadvantaging the United States — is not supported
+    by the data. US federal civilian DNSSEC adoption is strong (75.4% of 1,343 domains, a full
+    census) and exceeds an international sample of flagship government portals. The genuine deficits
+    lie elsewhere: the US military trails its own civilian agencies, with major commands — including
+    US Cyber Command and DISA, operator of the <span class="mono">.mil</span> registry — unsigned;
+    and across every jurisdiction the DKIM email-signing key is almost never anchored to root,
+    because organizations delegate it by CNAME into a mail provider's unsigned zone. The consistent
+    adopters, everywhere, are the national DNS registries.</p>
   </div>
-  <p style="margin-bottom:0"><b>DISA operates the <code>.mil</code> TLD. CYBERCOM is US Cyber Command.</b>
-  Both unsigned. DoD email runs DoD365 → CNAME into <code>*.onmicrosoft.us</code> (unsigned), so
-  <b>0</b> sampled <code>.mil</code> keys anchor to root.</p>
-</div>
 
-<div class="callout good">
-  <h3>Who does it right in <code>.gov</code></h3>
-  <p style="margin-bottom:0">The 56 root-anchored domains skew to the <b>intelligence community</b>
-  (<code>cia.gov · ic.gov · odci.gov</code>) and <b>national labs</b> (<code>lbl.gov · ameslab.gov ·
-  nnss.gov</code>), plus <code>noaa.gov · gps.gov · gsa.gov</code>. The most sensitive-mail orgs
-  self-host signed keys.</p>
-</div>
+  <section>
+    <h2><span class="n">§1</span>Findings</h2>
+    <p>This study asks a question most email-authentication audits skip. It is well understood whether
+    a domain <em>publishes</em> a DKIM key; it is rarely asked whether that key is itself
+    cryptographically anchored — whether an adversary able to spoof DNS could substitute it. We
+    measured two things from the IANA root trust anchor: whether each zone's DNSSEC chain validates,
+    and whether the DKIM record at <span class="mono">selector._domainkey.domain</span> validates as
+    a record in a signed zone rather than a pointer into an unsigned one.</p>
+    <p>Four results stand out. <span class="lead-in">First,</span> US federal civilian DNSSEC is
+    strong and, if anything, ahead: 75.4% of all 1,343 <span class="mono">.gov</span> domains validate
+    to root,<sup class="fn"><a href="#r1">1</a></sup> against roughly 61% of the international
+    flagship-government domains sampled. <span class="lead-in">Second,</span> the military lags the
+    civilian government — and the unsigned set includes the very organizations chartered for cyber
+    defense. <span class="lead-in">Third,</span> the email key is almost never anchored: 4.2% of
+    federal civilian domains, and none of the sampled military domains. <span class="lead-in">Fourth,</span>
+    the reliable adopters are not a region but a profession — the national DNS registries, which sign
+    their zones nearly universally and hold most of the world's root-anchored email keys.</p>
+  </section>
 
-<h2>Part 2 — International landscape <span class="tag">~30 countries · sample</span></h2>
-<p>One flagship government domain per country, plus its national DNS registry where one was sampled
-(25 of ~31 countries; the rest government-only). Read these as <em>facts about specific domains</em>,
-not country rankings (one domain per role is too thin to rank).</p>
+  <section>
+    <h2><span class="n">§2</span>Method</h2>
+    <p class="note">The federal <span class="mono">.gov</span> set is a complete census of the official
+    CISA/GSA domain list<sup class="fn"><a href="#r2">2</a></sup> (1,343 domains). The
+    <span class="mono">.mil</span> set is a curated sample, as the Department of Defense publishes no
+    registry; the international set pairs one flagship government domain per country with the national
+    DNS registry where one was sampled (25 of 31 countries; six are government-only). Validation uses
+    <span class="mono">delv</span><sup class="fn"><a href="#r3">3</a></sup>, which resolves and
+    validates from the root anchor independently of any recursive resolver. A DKIM key is counted as
+    <em>anchored</em> only if it is a direct record returning a fully-validated chain — a record
+    reached through a CNAME into an unsigned provider zone does not qualify.</p>
+    <p class="note">Three measurement artifacts were identified and corrected, each of which would have
+    overstated success: a non-validating resolver in the test environment (the AD flag was unusable,
+    motivating <span class="mono">delv</span>); the two-verdict output <span class="mono">delv</span>
+    emits for a CNAME chain — <em>fully validated</em> for the signed pointer, then <em>unsigned
+    answer</em> for the key it targets; and unstable verdicts under parallel load. A serial re-check of
+    fifteen domains classified unsigned found no false negatives.</p>
+  </section>
 
-<h3>DNSSEC-signed rate, by domain class</h3>
-<div class="barrow"><div>US federal <code>.gov</code> (census)</div>
-  <div class="t"><span style="width:75%;background:var(--good)"></span></div><div class="v">75%</div></div>
-<div class="barrow"><div>Intl national registries</div>
-  <div class="t"><span style="width:92%;background:var(--good)"></span></div><div class="v">~92%</div></div>
-<div class="barrow"><div>Intl flagship gov portals</div>
-  <div class="t"><span style="width:61%;background:var(--warn)"></span></div><div class="v">~61%</div></div>
-<div class="barrow"><div>US <code>.mil</code> (sample)</div>
-  <div class="t"><span style="width:47%;background:var(--bad)"></span></div><div class="v">~47%</div></div>
-<p style="font-size:14px;color:var(--muted)">National DNS registries lead everywhere. US federal
-civilian (75%) sits <em>above</em> the international flagship-government sample (~61%) — there is no
-US-vs-EU government deficit in this data.</p>
+  <section>
+    <h2><span class="n">§3</span>The US federal estate</h2>
+    <div class="tbl">
+    <table>
+      <caption><b>Table 1</b> Federal <span class="mono" style="text-transform:none;letter-spacing:0">.gov</span> census (n = 1,343) and military sample (n = 17).</caption>
+      <thead><tr><th>Measure</th><th class="r">Civilian .gov</th><th class="r">Military .mil</th></tr></thead>
+      <tbody>
+        <tr><td>Zone DNSSEC-validated to root</td><td class="r">75.4%</td><td class="r">~47%</td></tr>
+        <tr><td>Publishes a DKIM key (common selectors)</td><td class="r">316</td><td class="r">—</td></tr>
+        <tr><td>&nbsp;&nbsp;— delegated by CNAME to an unsigned zone</td><td class="r">76%</td><td class="r">all</td></tr>
+        <tr><td>DKIM key anchored to root</td><td class="r">4.2%</td><td class="r">0</td></tr>
+      </tbody>
+    </table>
+    </div>
 
-<h3>Flagship government domains — surprising who's <em>un</em>signed</h3>
-<table>
-  <tr><th style="color:var(--good)">Signed</th><th style="color:var(--bad)">Unsigned</th></tr>
-  <tr>
-    <td>🇩🇪 bund.de · 🇳🇱 government.nl · 🇬🇧 gov.uk · 🇧🇪 belgium.be · 🇸🇪 regeringen.se · 🇳🇴 regjeringen.no · 🇩🇰 borger.dk · 🇪🇪 eesti.ee · 🇨🇿 gov.cz · 🇵🇱 gov.pl · 🇸🇮 gov.si · 🇪🇸 lamoncloa.gob.es · 🇵🇹 gov.pt · 🇯🇵 japan.go.jp · 🇳🇿 govt.nz · 🇸🇬 gov.sg · 🇧🇷 gov.br</td>
-    <td>🇫🇷 service-public.fr · 🇨🇭 admin.ch · 🇨🇦 canada.ca · 🇦🇺 australia.gov.au · 🇫🇮 valtioneuvosto.fi · 🇮🇪 gov.ie · 🇮🇹 governo.it · 🇮🇸 island.is · 🇦🇹 oesterreich.gv.at · 🇰🇷 korea.kr · 🇮🇳 india.gov.in · 🇿🇦 gov.za</td>
-  </tr>
-</table>
-<p style="font-size:14px;color:var(--muted)">Western Europe is split ~50/50; Central/Eastern Europe
-(CZ, EE, PL, SI) is the strongest cluster sampled.</p>
+    <div class="aside">
+      <h4>The cyber-mission military is unsigned</h4>
+      <p class="note">In the <span class="mono">.mil</span> sample, the following domains are not
+      DNSSEC-signed — each independently verifiable, so the observation does not rest on sample size:</p>
+      <p class="note mono" style="font-size:14px;color:var(--accent)">army.mil · navy.mil · af.mil ·
+      marines.mil · spaceforce.mil · cybercom.mil · disa.mil · pacom.mil · dla.mil</p>
+      <p class="note"><strong>DISA operates the <span class="mono">.mil</span> registry; CYBERCOM is
+      US Cyber Command.</strong> Defense email runs on DoD365, which delegates DKIM by CNAME into
+      <span class="mono">*.onmicrosoft.us</span> — unsigned — so no sampled military key anchors to root.</p>
+    </div>
 
-<div class="callout warn">
-  <h3>Signed zone, unanchored key — the universal failure</h3>
-  <p style="margin-bottom:0">Email keys that <b>actually validate to root</b> are almost all
-  <b>registries</b> — <code>nic.ch · nic.cz · denic.de · afnic.fr · nic.it · dns.pt · traficom.fi ·
-  internetnz.nz</code> — plus two governments, 🇩🇰 <code>borger.dk</code> and 🇪🇸 <code>lamoncloa.gob.es</code>.
-  Everyone else <code>CNAME</code>s DKIM into an unsigned provider zone (Microsoft 365, SendGrid,
-  Mailchimp; DoD365). The cryptographic identity of government email is, in effect, only as
-  trustworthy as unauthenticated DNS to a third party.</p>
-</div>
+    <p>Where federal civilian email keys <em>are</em> anchored, they concentrate among the organizations
+    handling the most sensitive correspondence: the intelligence community
+    (<span class="mono">cia.gov, ic.gov, odci.gov</span>) and the national laboratories
+    (<span class="mono">lbl.gov, ameslab.gov, nnss.gov</span>), alongside a few high-traffic services
+    (<span class="mono">noaa.gov, gps.gov, gsa.gov</span>). Competence tracks consequence.</p>
+  </section>
 
-<h2>Is this reliable?</h2>
-<p>Yes — method validated, and three traps that each would have <em>over</em>-reported success were
-caught before these numbers:</p>
-<ol class="steps">
-  <li><b>Controls pass:</b> <code>delv</code> validates a known-good signed domain and rejects a
-  deliberately-broken one.</li>
-  <li><b>Spot-check clean:</b> 15 random "unsigned" <code>.gov</code> re-validated serially → <b>0</b>
-  timeout artifacts; 5/5 "signed" reconfirmed.</li>
-  <li><b>Traps fixed:</b> a non-validating test resolver; <code>delv</code>'s two-verdict CNAME output;
-  parallel-load false positives → only <b>direct, fully-validated</b> keys count as anchored.</li>
-</ol>
-<p><b>Calibration:</b> our 75.4% is ~2× the last published academic figure (~38%, Sept 2023) — likely
-real mandate-driven growth, but treat the absolute as a June-2026 snapshot (NIST's monitor is
-authoritative). <b>Limits:</b> international coverage is uneven — one gov domain per country, a registry for 25 of ~31 (per-domain facts, not country
-rankings); DKIM detection used ~10 guessed selectors (undercounts presence); single snapshot.</p>
+  <section>
+    <h2><span class="n">§4</span>The international landscape</h2>
+    <figure>
+      <div class="barfig">
+        <div class="b"><div class="lab">National DNS registries</div>
+          <div class="track"><span style="width:92%"></span></div><div class="val">92%</div></div>
+        <div class="b"><div class="lab">US federal <span class="mono">.gov</span> (census)</div>
+          <div class="track"><span style="width:75%"></span></div><div class="val">75%</div></div>
+        <div class="b"><div class="lab">Flagship government portals</div>
+          <div class="track"><span style="width:61%"></span></div><div class="val">61%</div></div>
+        <div class="b alarm"><div class="lab">US <span class="mono">.mil</span> (sample)</div>
+          <div class="track"><span style="width:47%"></span></div><div class="val">47%</div></div>
+      </div>
+      <figcaption><b>Figure 1</b> Share of domains whose DNSSEC chain validates to root, by class.
+      US federal civilian adoption sits above the international government sample; the consistent
+      adopters are the registries, not any region.</figcaption>
+    </figure>
 
-<h2>Why it matters</h2>
-<p>A zero-knowledge DNSSEC proof can let a verifier confirm an email key is authentically published —
-but only if the key is anchored to root to begin with. This census quantifies how rare that
-precondition is (~4% US civilian, ~0% military, ~18% of sampled international infra) and names a
-concrete ask: <b>publish your DKIM key as a signed record in your own DNSSEC zone, not a CNAME into an
-unsigned tenant.</b> Validating test vectors fall out for free: <code>gsa.gov · cia.gov · noaa.gov ·
-denic.de · afnic.fr</code>.</p>
+    <p>The cross-country picture dissolves the regional framing entirely. National DNS registries sign
+    their zones almost everywhere (23 of 25 sampled), a near-universal professional norm. Flagship
+    government portals are far more uneven — and the unsigned set is not where one would guess.</p>
 
-<div class="foot">
-  <p><b>Sources &amp; tooling.</b> Federal domain list: CISA/GSA <code>dotgov-data</code> (official).
-  Validation: <code>delv</code> (ISC BIND), IANA root trust anchor. 2023 baseline:
-  <a href="https://www.darkreading.com/cyber-risk/report-government-agencies-lag-in-dnssec-adoption">Dark Reading measurement report</a>.
-  Authoritative monitor: <a href="https://usgv6-deploymon.nist.gov/">NIST USGv6 / DNSSEC</a>.
-  Reproducible: scripts + raw CSVs alongside this report.</p>
-  <p>0pon · DNS security census · June 2026 · full <code>.gov</code> census; illustrative <code>.mil</code> &amp; international samples.</p>
-</div>
-</div>
+    <h3>Flagship government domains, by DNSSEC status</h3>
+    <p class="note" style="font-size:14.5px;color:var(--soft)">Read as facts about specific domains,
+    not country rankings — one domain per country is too thin to rank a government.</p>
+    <div class="cols">
+      <ul class="domlist">
+        <li><span class="tick">signed —</span> Germany <span class="mono">bund.de</span></li>
+        <li><span class="tick">signed —</span> Netherlands <span class="mono">government.nl</span></li>
+        <li><span class="tick">signed —</span> United Kingdom <span class="mono">gov.uk</span></li>
+        <li><span class="tick">signed —</span> Sweden <span class="mono">regeringen.se</span></li>
+        <li><span class="tick">signed —</span> Denmark <span class="mono">borger.dk</span></li>
+        <li><span class="tick">signed —</span> Estonia <span class="mono">eesti.ee</span></li>
+        <li><span class="tick">signed —</span> Czechia <span class="mono">gov.cz</span></li>
+        <li><span class="tick">signed —</span> Poland <span class="mono">gov.pl</span></li>
+        <li><span class="tick">signed —</span> Spain <span class="mono">lamoncloa.gob.es</span></li>
+        <li><span class="tick">signed —</span> Brazil <span class="mono">gov.br</span></li>
+        <li><span class="tick">signed —</span> Singapore <span class="mono">gov.sg</span></li>
+        <li><span class="cross">unsigned —</span> France <span class="mono">service-public.fr</span></li>
+        <li><span class="cross">unsigned —</span> Switzerland <span class="mono">admin.ch</span></li>
+        <li><span class="cross">unsigned —</span> Canada <span class="mono">canada.ca</span></li>
+        <li><span class="cross">unsigned —</span> Australia <span class="mono">australia.gov.au</span></li>
+        <li><span class="cross">unsigned —</span> Italy <span class="mono">governo.it</span></li>
+        <li><span class="cross">unsigned —</span> Ireland <span class="mono">gov.ie</span></li>
+        <li><span class="cross">unsigned —</span> Finland <span class="mono">valtioneuvosto.fi</span></li>
+        <li><span class="cross">unsigned —</span> Austria <span class="mono">oesterreich.gv.at</span></li>
+      </ul>
+    </div>
+    <p>Western Europe is split roughly evenly; the strongest cluster sampled is Central and Eastern
+    Europe. Email-key anchoring is rarer still, and concentrated almost entirely in registries —
+    DENIC, AFNIC, <span class="mono">nic.it</span>, <span class="mono">nic.ch</span>,
+    <span class="mono">dns.pt</span> — with only two governments in the sample, Denmark and Spain,
+    self-hosting a signed key. Everyone else delegates the key into an unsigned tenant.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">§5</span>Discussion</h2>
+    <p>A signed zone with a delegated key is a half-measure that reads as protection. The zone's
+    cryptographic guarantees stop at the CNAME; the key that actually authenticates the mail inherits
+    the security of unauthenticated DNS to a third party. The remediation is unglamorous and concrete:
+    <strong>publish the DKIM key as a signed record within one's own DNSSEC zone, not as a pointer into
+    a provider's unsigned tenant.</strong></p>
+    <p>The finding also bounds the near-term value of any system that proves DKIM-key authenticity from
+    DNSSEC — a zero-knowledge DNSSEC proof can attest only to a key that is anchored to begin with, and
+    that precondition is presently rare: roughly four percent of federal civilian domains, none of the
+    sampled military, and outside the registries, vanishing. The same census yields the small set of
+    domains where such a proof is demonstrable today.</p>
+    <p class="note"><span class="lead-in">Limitations.</span> The absolute civilian figure (75.4%) is
+    roughly double the last published academic measurement (~38%, September 2023)<sup class="fn"><a href="#r4">4</a></sup>;
+    the most plausible reading is genuine, mandate-driven growth, but it should be treated as a June-2026
+    snapshot by this method, with the NIST deployment monitor<sup class="fn"><a href="#r5">5</a></sup> as
+    the authoritative reference. DKIM presence was probed through roughly ten common selectors without a
+    mail corpus and is therefore undercounted; international coverage is one flagship domain per country.
+    A single snapshot.</p>
+  </section>
+
+  <div class="refs">
+    <ol>
+      <li id="r1">DNSSEC validation determined per domain via the BIND <span class="mono">delv</span>
+      validating lookup, from the IANA root key. Census, June 2026.</li>
+      <li id="r2">CISA / GSA, <em>dotgov-data</em>, official registry of US federal
+      <span class="mono">.gov</span> domains.</li>
+      <li id="r3">Internet Systems Consortium, <span class="mono">delv</span> (Domain Entity Lookup &amp;
+      Validation), BIND 9.</li>
+      <li id="r4"><em>Report: Government Agencies Lag in DNSSEC Adoption</em>, Dark Reading, 2023.
+      <a href="https://www.darkreading.com/cyber-risk/report-government-agencies-lag-in-dnssec-adoption">darkreading.com</a></li>
+      <li id="r5">NIST, <em>Estimating IPv6 &amp; DNSSEC Deployment Status</em> (USGv6 monitor).
+      <a href="https://usgv6-deploymon.nist.gov/">usgv6-deploymon.nist.gov</a></li>
+    </ol>
+  </div>
+  <p class="colophon">0pon · DNS Security Census · full .gov census, illustrative .mil and
+  international samples · methods and raw data published alongside this report.</p>
+
+</article>
 </body>
 </html>
