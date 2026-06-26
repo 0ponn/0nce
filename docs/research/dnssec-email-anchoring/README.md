@@ -7,7 +7,8 @@ DNS-spoofing adversary could swap?
 
 **Scope.** A **full census of all 1,343 US federal `.gov` domains** (CISA/GSA official
 list), a `.mil` sample (DoD publishes no list), and an **international landscape** of ~30
-countries (flagship government domain + national DNS registry each). Validation is real:
+countries (each country's flagship government domain, plus the national DNS registry for the 25
+where one was sampled — 6 are government-only). Validation is real:
 `delv`, from the IANA root trust anchor, independent of any resolver. Snapshot: June 2026.
 
 > **HTML version:** [`report.html`](report.html) — self-contained, open in any browser.
@@ -66,9 +67,9 @@ signed keys.
 
 ## Part 2 — International landscape (~30 countries)
 
-Each country: its **flagship government domain** + its **national DNS registry**. One domain per
-role, so read this as a *landscape of facts about specific domains*, **not** a country ranking
-(too thin to rank governments).
+Per country: its **flagship government domain**, plus its **national DNS registry** where one was
+sampled (25 of ~31 countries; the rest are government-only). One domain per role — so read this as
+a *landscape of facts about specific domains*, **not** a country ranking (too thin to rank governments).
 
 ### Flagship government domains — DNSSEC-signed?
 
@@ -81,7 +82,7 @@ Central/Eastern Europe (CZ, EE, PL, SI) is the strongest cluster in this sample.
 
 ### National DNS registries — the real adopters
 
-**~22/24 ≈ 92% signed.** Registries sign their own zones almost universally (DENIC, AFNIC,
+**23/25 ≈ 92% signed.** Registries sign their own zones almost universally (DENIC, AFNIC,
 SIDN, Nominet, CIRA, .cz/.it/.ch/.pt/.no/.se/.sg/.jp …). The DNS-operator community practices
 what it standardizes — regardless of country.
 
@@ -109,8 +110,9 @@ Everyone else CNAMEs DKIM into an unsigned provider zone. ~10 of 56 internationa
   (~38% in Sept 2023). Most likely real, mandate-driven growth — but treat it as a *June-2026
   snapshot by this method*; NIST's per-domain monitor is the authoritative cross-reference. The
   *structural* findings do not depend on the absolute number.
-- **Limits.** International rows are **one domain per role** — per-domain facts, not country
-  rankings. DKIM detection used ~10 guessed selectors (no mail corpus), so DKIM presence is
+- **Limits.** International coverage is uneven — one flagship government domain per country, and a
+  national registry for 25 of ~31 (6 government-only). These are **per-domain facts, not country
+  rankings.** DKIM detection used ~10 guessed selectors (no mail corpus), so DKIM presence is
   undercounted in both directions equally. Single snapshot.
 
 ---
