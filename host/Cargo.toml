@@ -7,6 +7,12 @@ edition = "2021"
 name = "0nce"
 path = "src/main.rs"
 
+[features]
+# Opt-in GPU proving via RISC0's CUDA backend. Build with `--features cuda`;
+# needs a CUDA toolkit (nvcc) at build time and a CUDA runtime + NVIDIA driver
+# at run time. CPU proving is the default and needs none of that.
+cuda = ["risc0-zkvm/cuda"]
+
 [dependencies]
 risc0-zkvm = { version = "3" }
 methods = { path = "../methods" }
