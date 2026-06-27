@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Email Trust-Anchoring in Government DNS</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=Spline+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper:#fbfaf6; --ink:#1c1b18; --body:#2c2a26; --soft:#74705f; --faint:#e4dfd1; --hair:#efeadd;
@@ -15,24 +12,24 @@
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--paper);color:var(--body);
-    font:400 19px/1.66 "Source Serif 4",Georgia,serif;font-optical-sizing:auto;
+    font:400 19px/1.66 Charter,"Iowan Old Style",Georgia,Cambria,"Times New Roman",serif;font-optical-sizing:auto;
     opacity:0;animation:fade .6s ease forwards}
   @keyframes fade{to{opacity:1}}
   @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   .page{max-width:660px;margin:0 auto;padding:20px 30px 120px}
   ::selection{background:#ecdfc6}
-  .sans{font-family:"Spline Sans",sans-serif}
-  .mono,code{font:400 .85em/1.5 "Spline Sans Mono",monospace;color:#3c382f;letter-spacing:-.01em}
+  .sans{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+  .mono,code{font:400 .85em/1.5 ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;color:#3c382f;letter-spacing:-.01em}
   a{color:var(--accent);text-decoration:none;border-bottom:1px solid #c98e8b}
   strong{font-weight:600;color:var(--ink)}
 
   /* masthead */
-  .eyebrow{font:600 12px/1.4 "Spline Sans",sans-serif;letter-spacing:.14em;
+  .eyebrow{font:600 12px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.14em;
     text-transform:uppercase;color:var(--soft)}
-  h1{font-family:"Spline Sans",sans-serif;font-weight:700;font-size:40px;line-height:1.06;
+  h1{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-weight:700;font-size:40px;line-height:1.06;
     letter-spacing:-.025em;color:var(--ink);margin:.42em 0 .3em}
   .deck{font-size:21px;line-height:1.45;color:#403c33;margin:0;max-width:33em}
-  .byline{margin:24px 0 0;font:500 13.5px/1.5 "Spline Sans",sans-serif;color:var(--soft);
+  .byline{margin:24px 0 0;font:500 13.5px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--soft);
     letter-spacing:.01em}
   .byline b{color:var(--ink);font-weight:600}
 
@@ -41,33 +38,33 @@
     border-top:2px solid var(--rule);border-bottom:1px solid var(--faint)}
   .keys .k{flex:1;animation:rise .6s ease both}
   .keys .k:nth-child(2){animation-delay:.08s}.keys .k:nth-child(3){animation-delay:.16s}
-  .keys .num{font:600 40px/1 "Spline Sans",sans-serif;letter-spacing:-.03em;color:var(--ink)}
+  .keys .num{font:600 40px/1 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:-.03em;color:var(--ink)}
   .keys .k.bad .num{color:var(--alarm)}
   .keys .cap{margin-top:9px;font-size:14.5px;line-height:1.3;color:#4a463c}
 
   /* sections */
   section{margin-top:42px}
-  h2{font:600 13px/1.3 "Spline Sans",sans-serif;letter-spacing:.05em;text-transform:uppercase;
+  h2{font:600 13px/1.3 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;
     color:var(--soft);margin:0 0 12px;display:flex;align-items:baseline;gap:12px}
   h2::before{content:attr(data-n);color:var(--alarm);font-weight:700}
   h2::after{content:"";flex:1;height:1px;background:var(--faint)}
-  h3{font:600 21px/1.25 "Source Serif 4",serif;margin:30px 0 6px;letter-spacing:-.01em;color:var(--ink)}
+  h3{font:600 21px/1.25 Charter,"Iowan Old Style",Georgia,Cambria,"Times New Roman",serif;margin:30px 0 6px;letter-spacing:-.01em;color:var(--ink)}
   p{margin:.75em 0;max-width:62ch}            /* left-aligned, ragged right — not justified */
   .lead{font-size:20px;line-height:1.55}
-  .small-soft{font:500 14px/1.5 "Spline Sans",sans-serif;color:var(--soft)}
+  .small-soft{font:500 14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--soft)}
 
   /* tables — booktabs */
   figure,.tbl{margin:26px 0}
   table{width:100%;border-collapse:collapse;font-size:16.5px;border-top:2px solid var(--rule)}
   caption,figcaption{caption-side:top;text-align:left;font-size:14px;color:#4a463c;margin-bottom:11px}
-  .cnum{font:600 11px/1 "Spline Sans",sans-serif;letter-spacing:.09em;text-transform:uppercase;
+  .cnum{font:600 11px/1 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;
     color:var(--alarm);margin-right:.7em}
-  thead th{font:600 11.5px/1.3 "Spline Sans",sans-serif;letter-spacing:.05em;text-transform:uppercase;
+  thead th{font:600 11.5px/1.3 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;
     color:var(--soft);text-align:left;padding:11px 12px 9px;border-bottom:1.5px solid var(--rule)}
   th.r,td.r{text-align:right}
   tbody td{padding:11px 12px;border-bottom:1px solid var(--hair)}
   tbody tr:last-child td{border-bottom:2px solid var(--rule)}
-  td.r{font:500 15px/1.4 "Spline Sans Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+  td.r{font:500 15px/1.4 ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
   figcaption{margin:14px 0 0;font-style:normal}
 
   /* figure: bars */
@@ -81,14 +78,14 @@
     animation:grow 1s cubic-bezier(.2,.7,.2,1) both;transform-origin:left}
   @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   .b.good .track>span{background:var(--good)} .b.bad .track>span{background:var(--alarm)}
-  .b .val{flex:0 0 44px;text-align:right;font:600 15px/1 "Spline Sans Mono",monospace;
+  .b .val{flex:0 0 44px;text-align:right;font:600 15px/1 ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;
     font-variant-numeric:tabular-nums;color:var(--ink)}
 
   /* pull / aside */
   .pull{margin:26px 0;padding:4px 0 4px 22px;border-left:3px solid var(--alarm)}
-  .pull h4{font:600 18px/1.3 "Source Serif 4",serif;color:var(--ink);margin:0 0 6px}
+  .pull h4{font:600 18px/1.3 Charter,"Iowan Old Style",Georgia,Cambria,"Times New Roman",serif;color:var(--ink);margin:0 0 6px}
   .pull p{margin:.4em 0}
-  .domhit{font:500 14.5px/1.7 "Spline Sans Mono",monospace;color:var(--alarm);max-width:none}
+  .domhit{font:500 14.5px/1.7 ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;color:var(--alarm);max-width:none}
 
   /* signed/unsigned list */
   .cols{columns:2;column-gap:36px;margin:12px 0}
@@ -96,29 +93,29 @@
   .domlist li{break-inside:avoid;padding:3px 0;line-height:1.3}
   .domlist .mono{font-size:13.5px}
   .domlist .s{color:var(--good);font-weight:600} .domlist .u{color:var(--alarm);font-weight:600}
-  .domlist .s,.domlist .u{font-family:"Spline Sans",sans-serif;font-size:11px;letter-spacing:.04em;
+  .domlist .s,.domlist .u{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:11px;letter-spacing:.04em;
     text-transform:uppercase;margin-right:6px}
 
   /* refs */
   sup a{font-size:.62em;vertical-align:super;line-height:0;border:0;color:var(--alarm);font-weight:600}
   .refs{margin-top:50px;border-top:1px solid var(--faint);padding-top:16px}
-  .refs ol{margin:0;padding-left:1.5em;font:400 13.5px/1.65 "Spline Sans",sans-serif;color:var(--soft)}
+  .refs ol{margin:0;padding-left:1.5em;font:400 13.5px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--soft)}
   .refs li{margin:4px 0}
-  .colophon{margin-top:30px;font:500 12px/1.6 "Spline Sans Mono",monospace;color:var(--soft);letter-spacing:.02em}
+  .colophon{margin-top:30px;font:500 12px/1.6 ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;color:var(--soft);letter-spacing:.02em}
   .brief{margin:26px 0 0}
   .punch{font-size:21px;line-height:1.5;color:#332f27;max-width:60ch;margin:0}
   .punch strong{color:var(--ink)}
   .briefcta{margin:16px 0 0;font-size:17px;max-width:60ch}
   .verify{margin:12px 0 0;font-size:15px;color:var(--soft)}
-  .cmd{font:500 13px/1 "Spline Sans Mono",monospace;background:#efe9da;color:var(--ink);padding:3px 7px;border-radius:3px;border:1px solid var(--faint);white-space:nowrap}
-  .divider{margin:44px 0 4px;font:600 12px/1.4 "Spline Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);display:flex;align-items:center;gap:14px}
+  .cmd{font:500 13px/1 ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;background:#efe9da;color:var(--ink);padding:3px 7px;border-radius:3px;border:1px solid var(--faint);white-space:nowrap}
+  .divider{margin:44px 0 4px;font:600 12px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);display:flex;align-items:center;gap:14px}
   .divider::after{content:"";flex:1;height:1px;background:var(--faint)}
   .cta{margin:42px 0 0;padding:24px 0 0;border-top:2px solid var(--rule)}
   .cta p{font-size:17.5px;max-width:60ch;color:#332f27;margin:0}
   .cta a{font-weight:600}
   .stack{display:flex;height:17px;background:#eee7d6;overflow:hidden}
   .stack>span{display:block;height:100%}
-  .stackkey{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:11px;font:500 13px/1.4 "Spline Sans",sans-serif;color:#4a463c}
+  .stackkey{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:11px;font:500 13px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:#4a463c}
   .stackkey i{display:inline-block;width:11px;height:11px;margin-right:7px;vertical-align:-1px}
   @media(max-width:560px){.page{padding:16px 20px 80px}h1{font-size:31px}.keys{flex-wrap:wrap;gap:18px}
     .keys .k{flex:0 0 44%}.keys .num{font-size:32px}.cols{columns:1}.b .lab{flex-basis:120px;font-size:14px}}
@@ -133,7 +130,7 @@
   sample, and thirty-one countries — testing whether each domain's DNSSEC chain, and the DKIM key that
   authenticates its email, validates all the way to the DNS root.</p>
   <p class="byline"><b>Michael Layug</b> &nbsp;·&nbsp; 0pon &nbsp;·&nbsp; validated with
-  <span style="font-family:'Spline Sans Mono',monospace">delv</span> from the IANA root anchor</p>
+  <span style="font-family:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace">delv</span> from the IANA root anchor</p>
 
   <div class="keys">
     <div class="k"><div class="num">76%</div><div class="cap">of 1,343 federal
