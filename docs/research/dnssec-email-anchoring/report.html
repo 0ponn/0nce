@@ -126,19 +126,17 @@
 
   <div class="eyebrow">0pon · DNS Security · Technical Report · June 2026</div>
   <h1>Governments sign their zones. Almost none anchor their email keys.</h1>
-  <p class="deck">A census of US federal <span class="mono">.gov</span>, a <span class="mono">.mil</span>
-  sample, and thirty-one countries — testing whether each domain's DNSSEC chain, and the DKIM key that
+  <p class="deck">A census of all 1,343 US federal <span class="mono">.gov</span> domains, plus a thirty-one-country comparison — testing whether each domain's DNSSEC chain, and the DKIM key that
   authenticates its email, validates all the way to the DNS root.</p>
   <p class="byline"><b>Michael Layug</b> &nbsp;·&nbsp; 0pon &nbsp;·&nbsp; validated with
-  <span style="font-family:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace">delv</span> from the IANA root anchor</p>
+  <span class="mono">delv</span> from the IANA root anchor</p>
 
   <div class="keys">
     <div class="k"><div class="num">76%</div><div class="cap">of 1,343 federal
       <span class="mono">.gov</span> domains validate to root</div></div>
     <div class="k bad"><div class="num">4.2%</div><div class="cap">have a DKIM email key that anchors
       to root</div></div>
-    <div class="k bad"><div class="num">0</div><div class="cap">sampled <span class="mono">.mil</span>
-      domains with an anchored key</div></div>
+    <div class="k bad"><div class="num">8%</div><div class="cap">have DNSSEC deployed but <strong>broken</strong></div></div>
   </div>
 
   <div class="brief">
@@ -161,13 +159,11 @@
     it — and points somewhere more interesting.</p>
     <p>Most email-authentication audits ask only whether a domain <em>publishes</em> a DKIM key. The
     harder question is whether that key is itself cryptographically anchored — whether an adversary who
-    can spoof DNS could simply substitute it. Measuring validation from the root anchor, four results
-    stand out.</p>
+    can spoof DNS could simply substitute it. Measuring validation from the root anchor, three results stand out.</p>
     <p><strong>US federal civilian DNSSEC is strong</strong> — 76% of all 1,343
     <span class="mono">.gov</span> domains validate to root, above the ~61% of international flagship
-    government domains sampled. <strong>The military lags its own civilian government</strong>, and the
-    unsigned set includes the organizations chartered for cyber defense. <strong>The email key is almost
-    never anchored</strong> — 4.2% of civilian domains, none of the sampled military. And
+    government domains sampled. <strong>The email key is almost never anchored</strong> — 4.2% of civilian
+    domains. And
     <strong>the consistent adopters are a profession, not a region</strong>: the national DNS registries,
     which sign their zones nearly universally and hold most of the world's root-anchored email keys.</p>
   </section>
@@ -175,8 +171,7 @@
   <section>
     <h2 data-n="02">Method</h2>
     <p>The federal <span class="mono">.gov</span> set is a complete census of the official CISA/GSA
-    list<sup><a href="#r2">2</a></sup> (1,343 domains). The <span class="mono">.mil</span> set is a
-    sample — Defense publishes no registry — and the international set pairs one flagship government
+    list<sup><a href="#r2">2</a></sup> (1,343 domains). The international set pairs one flagship government
     domain per country with the national DNS registry where one was sampled (25 of 31 countries; six
     government-only). Validation uses <span class="mono">delv</span><sup><a href="#r3">3</a></sup>,
     which validates from the root key independently of any resolver. A DKIM key counts as
@@ -193,13 +188,13 @@
     <h2 data-n="03">The US federal estate</h2>
     <div class="tbl">
     <table>
-      <caption><span class="cnum">Table 1</span>Civilian census (n=1,343) versus military sample (n=17).</caption>
-      <thead><tr><th>Measure</th><th class="r">Civilian .gov</th><th class="r">Military .mil</th></tr></thead>
+      <caption><span class="cnum">Table 1</span>Federal civilian census — all 1,343 domains.</caption>
+      <thead><tr><th>Measure</th><th class="r">Federal .gov</th></tr></thead>
       <tbody>
-        <tr><td>Zone DNSSEC — validates to root</td><td class="r">76%</td><td class="r">~47%</td></tr>
-        <tr><td>Publishes a DKIM key</td><td class="r">316</td><td class="r">—</td></tr>
-        <tr><td>— delegated by CNAME to an unsigned zone</td><td class="r">76%</td><td class="r">all</td></tr>
-        <tr><td>DKIM key anchored to root</td><td class="r">4.2%</td><td class="r">0</td></tr>
+        <tr><td>Zone DNSSEC — validates to root</td><td class="r">76%</td></tr>
+        <tr><td>Publishes a DKIM key</td><td class="r">316</td></tr>
+        <tr><td>— delegated by CNAME to an unsigned zone</td><td class="r">76%</td></tr>
+        <tr><td>DKIM key anchored to root</td><td class="r">4.2%</td></tr>
       </tbody>
     </table>
     </div>
@@ -215,18 +210,6 @@
     signatures fail to validate. This protects nothing and can make a domain unreachable for resolvers
     that enforce validation. Only 16% are wholly unsigned. The validating rate has roughly doubled since
     2023 (~36%) — the federal mandate is working, unevenly.</p>
-
-    <div class="pull">
-      <h4>The cyber-mission military is unsigned</h4>
-      <p>These <span class="mono">.mil</span> domains are not DNSSEC-signed — each individually
-      verifiable, so the point holds regardless of sample size:</p>
-      <p class="domhit">army.mil · navy.mil · af.mil · marines.mil · spaceforce.mil · cybercom.mil ·
-      disa.mil · pacom.mil · dla.mil</p>
-      <p><strong>DISA operates the <span class="mono">.mil</span> registry; CYBERCOM is US Cyber
-      Command.</strong> Defense email runs on DoD365, which delegates DKIM by CNAME into
-      <span class="mono">*.onmicrosoft.us</span> — unsigned — so no sampled military key anchors to root.
-      Note: <span class="mono">.mil</span> is governed by DoD policy, not the civilian DNSSEC mandate — this is a posture gap, not a compliance violation.</p>
-    </div>
 
     <p>Where civilian keys <em>are</em> anchored, they cluster among the organizations handling the most
     sensitive mail: the intelligence community (<span class="mono">cia.gov, ic.gov, odci.gov</span>) and
@@ -247,8 +230,6 @@
           <div class="track"><span style="width:76%"></span></div><div class="val">76%</div></div>
         <div class="b"><div class="lab">Flagship gov't portals</div>
           <div class="track"><span style="width:61%"></span></div><div class="val">61%</div></div>
-        <div class="b bad"><div class="lab">US <span class="mono">.mil</span></div>
-          <div class="track"><span style="width:47%"></span></div><div class="val">47%</div></div>
       </div>
     </figure>
 
@@ -296,8 +277,7 @@
     unsigned tenant.</strong></p>
     <p>The result also bounds the near-term value of any system that proves DKIM-key authenticity from
     DNSSEC: such a proof can attest only to a key that is already anchored, and that precondition is
-    presently rare — roughly four percent of federal civilian domains, none of the sampled military, and
-    outside the registries, vanishing. The same census names the small set of domains where such a proof
+    presently rare — roughly four percent of federal civilian domains, and outside the registries, vanishing. The same census names the small set of domains where such a proof
     is demonstrable today.</p>
     <p class="small-soft" style="margin-top:1.2em;max-width:62ch">
     <strong style="color:var(--ink)">Limitations.</strong> The civilian validating rate (76%) was
@@ -309,7 +289,7 @@
 
   <section>
     <h2 data-n="06">What this means — trust is not a control</h2>
-    <p>The pattern is identical across federal, military, and international: organizations have
+    <p>The pattern is identical across the federal estate and the international sample: organizations have
     outsourced the <em>operation</em> of email and DNS without preserving the ability to <em>verify</em>
     it. The signed zone protects the front door; the key that authenticates the mail sits, unverifiable,
     in a vendor's unsigned zone. Each such arrangement is a <em>trust-me</em> — trust the vendor, the
@@ -344,7 +324,7 @@
       <li id="r5">NIST, <em>IPv6 &amp; DNSSEC Deployment</em> (USGv6 monitor) — <a href="https://usgv6-deploymon.nist.gov/">usgv6-deploymon.nist.gov</a></li>
     </ol>
   </div>
-  <p class="colophon">0pon · DNS Security Census · full .gov census, illustrative .mil &amp; international samples · methods + raw data published alongside.</p>
+  <p class="colophon">0pon · DNS Security Census · full .gov census + an illustrative international sample · methods + raw data published alongside.</p>
 
 </article>
 </body>

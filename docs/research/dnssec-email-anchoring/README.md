@@ -6,7 +6,7 @@ email-signing key** itself validate to root, or does it sit in an unsigned zone 
 DNS-spoofing adversary could swap?
 
 **Scope.** A **full census of all 1,343 US federal `.gov` domains** (CISA/GSA official
-list), a `.mil` sample (DoD publishes no list), and an **international landscape** of ~31
+list), and an **international landscape** of ~31
 countries (each country's flagship government domain, plus the national DNS registry for the 25
 where one was sampled — 6 are government-only). Validation is real:
 `delv`, from the IANA root trust anchor, independent of any resolver. Snapshot: June 2026.
@@ -29,15 +29,12 @@ true:
    almost everywhere (~92% of those sampled) and hold nearly all the root-anchored email keys.
    Governments and commercial senders mostly don't. This pattern is the same on both sides of
    the Atlantic.
-3. **The US-specific weak spot is the military.** Major `.mil` domains — including **CYBERCOM**
-   and **DISA, which operates the `.mil` TLD** — are **not DNSSEC-signed**.
-4. **Email keys are almost never anchored, anywhere.** Even DNSSEC-signed domains `CNAME` their
-   DKIM key into a mail provider's **unsigned** zone (Microsoft 365, SendGrid, Mailchimp; DoD365
-   for the military). 76% of federal `.gov` domains that publish DKIM do this. Only ~4% of
-   federal civilian domains, and 0% of sampled `.mil`, have a key that validates to root.
+3. **Email keys are almost never anchored, anywhere.** Even DNSSEC-signed domains `CNAME` their
+   DKIM key into a mail provider's **unsigned** zone (Microsoft 365, SendGrid, Mailchimp). 76% of
+   federal `.gov` domains that publish DKIM do this; only ~4% have a key that validates to root.
 
 **One line:** *governments are decent at signing their zones and bad at anchoring their email
-keys; the US military lags its own civilian agencies; and the people who actually do it right
+keys; and the people who actually do it right
 are the DNS registries, everywhere.*
 
 ---
@@ -57,12 +54,6 @@ Beyond the 76% that validate, **8% (108 domains) have DNSSEC deployed but broken
 published while the zone's own signatures fail to validate, which protects nothing and can make the
 domain unreachable for validating resolvers. The validating rate has roughly doubled since 2023 (~36%);
 the federal mandate is working, unevenly.
-
-**`.mil` (sample, n = 17): ~47% signed, 0 keys anchored.** Not DNSSEC-signed (each individually
-verifiable): `army.mil`, `navy.mil`, `af.mil`, `marines.mil`, `spaceforce.mil`, `cybercom.mil`,
-`disa.mil`, `pacom.mil`, `dla.mil`. Signed: `darpa.mil`, `uscg.mil`, `dtic.mil`, `socom.mil`,
-`northcom.mil`, `dau.mil`, `health.mil`, `dvidshub.mil`. DoD email runs DoD365 → CNAME into
-`*.onmicrosoft.us` (unsigned).
 
 **Who does it right in `.gov`:** the 56 root-anchored domains skew to the **intelligence
 community** (`cia.gov`, `ic.gov`, `odci.gov`, `ucia.gov`) and **national labs** (`lbl.gov`,
@@ -127,7 +118,7 @@ Everyone else CNAMEs DKIM into an unsigned provider zone. ~10 of 56 internationa
 
 ## What this means — trust is not a control
 
-The pattern is identical across federal, military, and international: organizations have outsourced the
+The pattern is identical across the federal estate and the international sample: organizations have outsourced the
 *operation* of email and DNS without preserving the ability to *verify* it. The signed zone protects the
 front door; the key that authenticates the mail sits, unverifiable, in a vendor's unsigned zone. Each
 arrangement is a *trust-me*. None of it is negligence — it is the rational result of cloud-first,
@@ -150,7 +141,6 @@ it (the 0nce / DNSSEC-in-ZK work is one arrow). Validating test vectors fall out
 
 - Per-country **government domain censuses** (where lists exist) instead of one flagship each.
 - Real **selector discovery** (mail-corpus / provider patterns) to remove the DKIM undercount.
-- Trend tracking — DoD is mid-migration to DoD365; the `.mil` numbers will move.
 
 ---
 
