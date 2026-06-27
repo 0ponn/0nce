@@ -6,7 +6,7 @@ email-signing key** itself validate to root, or does it sit in an unsigned zone 
 DNS-spoofing adversary could swap?
 
 **Scope.** A **full census of all 1,343 US federal `.gov` domains** (CISA/GSA official
-list), a `.mil` sample (DoD publishes no list), and an **international landscape** of ~30
+list), a `.mil` sample (DoD publishes no list), and an **international landscape** of ~31
 countries (each country's flagship government domain, plus the national DNS registry for the 25
 where one was sampled — 6 are government-only). Validation is real:
 `delv`, from the IANA root trust anchor, independent of any resolver. Snapshot: June 2026.
