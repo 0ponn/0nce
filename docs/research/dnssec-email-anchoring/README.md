@@ -72,7 +72,7 @@ signed keys.
 
 ---
 
-## Part 2 — International landscape (~30 countries)
+## Part 2 — International landscape (~31 countries)
 
 Per country: its **flagship government domain**, plus its **national DNS registry** where one was
 sampled (25 of ~31 countries; the rest are government-only). One domain per role — so read this as
