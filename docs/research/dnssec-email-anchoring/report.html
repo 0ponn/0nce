@@ -145,16 +145,15 @@
   </div>
 
   <div class="brief">
-    <p class="punch">The organizations whose job is cyber haven't secured their own DNS:
-    <strong>cybercom.mil</strong> (US Cyber Command) and <strong>disa.mil</strong> — the agency that
-    runs the <span class="mono">.mil</span> registry — are not DNSSEC-signed. And across government, the
-    key that cryptographically authenticates email is almost never tamper-proof: it sits, unverifiable,
-    in a vendor's unsigned zone. The answer is a principle, not a product — <strong>prove it, don't
-    trust it.</strong></p>
+    <p class="punch">We checked all 1,343 US federal domains. The key that authenticates government
+    email — the thing that stops anyone forging mail from an agency — is <strong>almost never
+    cryptographically protected</strong>: it's parked, unverifiable, in commercial vendors' DNS. Only
+    ~4% of agencies hold a tamper-proof email key, and 8% have DNSSEC actively misconfigured. The answer
+    is a principle, not a product — <strong>prove it, don't trust it.</strong></p>
     <p class="briefcta"><strong>0pon</strong> builds verifiable attestation — proving a security or
     compliance claim instead of asserting it. <a href="https://0pon.com">0pon.com</a></p>
-    <p class="verify">Don't take our word for it — run <span class="cmd">delv cybercom.mil DNSKEY</span>
-    and see for yourself. That is the entire point.</p>
+    <p class="verify">Don't take our word for it — run <span class="cmd">delv onmicrosoft.com DNSKEY</span>:
+    the zone holding much of the government's email keys returns &ldquo;unsigned.&rdquo; That is the entire point.</p>
   </div>
 
   <div class="divider">Full analysis · census · methods · international</div>
@@ -228,7 +227,8 @@
       disa.mil · pacom.mil · dla.mil</p>
       <p><strong>DISA operates the <span class="mono">.mil</span> registry; CYBERCOM is US Cyber
       Command.</strong> Defense email runs on DoD365, which delegates DKIM by CNAME into
-      <span class="mono">*.onmicrosoft.us</span> — unsigned — so no sampled military key anchors to root.</p>
+      <span class="mono">*.onmicrosoft.us</span> — unsigned — so no sampled military key anchors to root.
+      Note: <span class="mono">.mil</span> is governed by DoD policy, not the civilian DNSSEC mandate — this is a posture gap, not a compliance violation.</p>
     </div>
 
     <p>Where civilian keys <em>are</em> anchored, they cluster among the organizations handling the most
