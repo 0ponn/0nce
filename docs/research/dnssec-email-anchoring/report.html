@@ -105,6 +105,14 @@
   .refs ol{margin:0;padding-left:1.5em;font:400 13.5px/1.65 "Spline Sans",sans-serif;color:var(--soft)}
   .refs li{margin:4px 0}
   .colophon{margin-top:30px;font:500 12px/1.6 "Spline Sans Mono",monospace;color:var(--soft);letter-spacing:.02em}
+  .brief{margin:26px 0 0}
+  .punch{font-size:21px;line-height:1.5;color:#332f27;max-width:60ch;margin:0}
+  .punch strong{color:var(--ink)}
+  .briefcta{margin:16px 0 0;font-size:17px;max-width:60ch}
+  .verify{margin:12px 0 0;font-size:15px;color:var(--soft)}
+  .cmd{font:500 13px/1 "Spline Sans Mono",monospace;background:#efe9da;color:var(--ink);padding:3px 7px;border-radius:3px;border:1px solid var(--faint);white-space:nowrap}
+  .divider{margin:44px 0 4px;font:600 12px/1.4 "Spline Sans",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);display:flex;align-items:center;gap:14px}
+  .divider::after{content:"";flex:1;height:1px;background:var(--faint)}
   .cta{margin:42px 0 0;padding:24px 0 0;border-top:2px solid var(--rule)}
   .cta p{font-size:17.5px;max-width:60ch;color:#332f27;margin:0}
   .cta a{font-weight:600}
@@ -135,6 +143,21 @@
     <div class="k bad"><div class="num">0</div><div class="cap">sampled <span class="mono">.mil</span>
       domains with an anchored key</div></div>
   </div>
+
+  <div class="brief">
+    <p class="punch">The organizations whose job is cyber haven't secured their own DNS:
+    <strong>cybercom.mil</strong> (US Cyber Command) and <strong>disa.mil</strong> — the agency that
+    runs the <span class="mono">.mil</span> registry — are not DNSSEC-signed. And across government, the
+    key that cryptographically authenticates email is almost never tamper-proof: it sits, unverifiable,
+    in a vendor's unsigned zone. The answer is a principle, not a product — <strong>prove it, don't
+    trust it.</strong></p>
+    <p class="briefcta"><strong>0pon</strong> builds verifiable attestation — proving a security or
+    compliance claim instead of asserting it. <a href="https://0pon.com">0pon.com</a></p>
+    <p class="verify">Don't take our word for it — run <span class="cmd">delv cybercom.mil DNSKEY</span>
+    and see for yourself. That is the entire point.</p>
+  </div>
+
+  <div class="divider">Full analysis · census · methods · international</div>
 
   <section>
     <h2 data-n="01">Findings</h2>
