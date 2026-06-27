@@ -125,14 +125,26 @@ Everyone else CNAMEs DKIM into an unsigned provider zone. ~10 of 56 internationa
 
 ---
 
-## Why it matters (and the 0pon tie-in)
+## What this means — trust is not a control
 
-A zero-knowledge DNSSEC proof (0nce **v2-B**) lets a verifier confirm an email key is
-authentically published — **but only if the key is anchored to root in the first place.** This
-census quantifies how rare that precondition is (~4% US federal civilian, ~0% military, ~18% of
-sampled international infra) and yields concrete validating test vectors (`gsa.gov`, `cia.gov`,
-`noaa.gov`, `denic.de`, `afnic.fr`). It also names a concrete remediation ask: **publish your
-DKIM key as a signed record in your own DNSSEC zone, not a CNAME into an unsigned tenant.**
+The pattern is identical across federal, military, and international: organizations have outsourced the
+*operation* of email and DNS without preserving the ability to *verify* it. The signed zone protects the
+front door; the key that authenticates the mail sits, unverifiable, in a vendor's unsigned zone. Each
+arrangement is a *trust-me*. None of it is negligence — it is the rational result of cloud-first,
+shared-services IT.
+
+But a system that has deliberately stopped *owning* its infrastructure — cloud-first, *zero trust* by
+policy — is one where *trust-me* is precisely what is meant to disappear. You cannot establish trust by
+owning what you no longer own; the only path left is to **verify**. **Prove it; don't trust it.** The
+immediate fix is unglamorous (publish your DKIM key as a signed record in your own DNSSEC zone, not a
+CNAME into an unsigned tenant); the general one is turning the trust-me assertions that govern
+compliance, supply chains, and identity into proofs anyone can check. The gap here is one instance of a
+larger question: *in a system that runs on outsourced trust, what else is asserted that no one can verify?*
+
+**0pon** builds verifiable attestation — the means to *prove* a security or compliance claim, not assert
+it (the 0nce / DNSSEC-in-ZK work is one arrow). Validating test vectors fall out of this census for free
+(`gsa.gov`, `cia.gov`, `denic.de`, `afnic.fr`).
+
 
 ## To make it fully rigorous
 

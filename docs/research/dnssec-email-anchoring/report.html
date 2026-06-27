@@ -105,6 +105,9 @@
   .refs ol{margin:0;padding-left:1.5em;font:400 13.5px/1.65 "Spline Sans",sans-serif;color:var(--soft)}
   .refs li{margin:4px 0}
   .colophon{margin-top:30px;font:500 12px/1.6 "Spline Sans Mono",monospace;color:var(--soft);letter-spacing:.02em}
+  .cta{margin:42px 0 0;padding:24px 0 0;border-top:2px solid var(--rule)}
+  .cta p{font-size:17.5px;max-width:60ch;color:#332f27;margin:0}
+  .cta a{font-weight:600}
   .stack{display:flex;height:17px;background:#eee7d6;overflow:hidden}
   .stack>span{display:block;height:100%}
   .stackkey{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:11px;font:500 13px/1.4 "Spline Sans",sans-serif;color:#4a463c}
@@ -283,6 +286,34 @@
     mandate-driven surge; NIST<sup><a href="#r5">5</a></sup> is the authoritative monitor. DKIM presence was probed via ~10 common selectors and is undercounted;
     international coverage is one flagship domain per country; a single snapshot.</p>
   </section>
+
+  <section>
+    <h2 data-n="06">What this means — trust is not a control</h2>
+    <p>The pattern is identical across federal, military, and international: organizations have
+    outsourced the <em>operation</em> of email and DNS without preserving the ability to <em>verify</em>
+    it. The signed zone protects the front door; the key that authenticates the mail sits, unverifiable,
+    in a vendor's unsigned zone. Each such arrangement is a <em>trust-me</em> — trust the vendor, the
+    resolution path, and that nothing in between was tampered with. None of it is negligence; it is the
+    rational result of cloud-first, shared-services government IT.</p>
+    <p>But a system that has deliberately stopped <em>owning</em> its infrastructure — cloud-first,
+    shared services, <em>zero trust</em> by policy — is a system in which <em>trust-me</em> is precisely
+    what is supposed to disappear. You cannot establish trust by owning what you no longer own. The only
+    path left is to <strong>verify</strong> it: to make each claim — <em>this key is the real one, this
+    control is in place, this build passed its checks</em> — something the relying party can check
+    cryptographically, without trusting the asserter and without re-doing the work.</p>
+    <p>That is the principle underneath the data. <strong>Prove it; don't trust it.</strong> The
+    immediate, concrete fix is unglamorous: publish your DKIM key as a signed record in your own DNSSEC
+    zone, not a pointer into an unsigned tenant. The general one is harder and more valuable — turning
+    the trust-me assertions that govern compliance, supply chains, and identity into proofs anyone can
+    check. The gap measured here is a single instance of a larger question: <strong>in a system that
+    runs on outsourced trust, what else is asserted that no one can verify?</strong></p>
+  </section>
+
+  <div class="cta">
+    <p><strong>0pon</strong> builds verifiable attestation — the means to <em>prove</em> a security or
+    compliance claim, not merely assert it. If that is a problem you have,
+    <a href="https://0pon.com">0pon.com</a>.</p>
+  </div>
 
   <div class="refs">
     <ol>
