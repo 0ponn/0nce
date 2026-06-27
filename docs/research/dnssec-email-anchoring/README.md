@@ -21,7 +21,7 @@ where one was sampled — 6 are government-only). Validation is real:
 The premise going in was a US-vs-EU DNSSEC deficit. **The data refutes it.** What's actually
 true:
 
-1. **US federal civilian DNSSEC is strong and, if anything, ahead.** 75.4% of all 1,343
+1. **US federal civilian DNSSEC is strong and, if anything, ahead.** 76% of all 1,343
    federal `.gov` domains validate to root — *higher* than the international flagship-government
    sample (~61% signed), where many Western governments' main portals are unsigned
    (`service-public.fr`, `admin.ch`, `canada.ca`, `australia.gov.au`, `governo.it`, `gov.ie`).
@@ -46,10 +46,17 @@ are the DNS registries, everywhere.*
 
 | Metric | Result |
 |---|---|
-| Zone DNSSEC-signed (validated to root) | **1,012 / 1,343 = 75.4%** |
+| Zone DNSSEC — **validates to root** | **1,019 / 1,343 = 76%** |
+| &nbsp;&nbsp;— deployed but **broken** (DS published, signatures fail) | 108 = 8% |
+| &nbsp;&nbsp;— unsigned (no DNSSEC) | 216 = 16% |
 | DKIM key found (common selectors) | 316 |
 | …outsourced via CNAME to an unsigned SaaS zone | 239 = **76%** of those |
 | **DKIM key anchored to root** (direct + validated) | **56 = 4.2%** |
+
+Beyond the 76% that validate, **8% (108 domains) have DNSSEC deployed but broken** — a DS record
+published while the zone's own signatures fail to validate, which protects nothing and can make the
+domain unreachable for validating resolvers. The validating rate has roughly doubled since 2023 (~36%);
+the federal mandate is working, unevenly.
 
 **`.mil` (sample, n = 17): ~47% signed, 0 keys anchored.** Not DNSSEC-signed (each individually
 verifiable): `army.mil`, `navy.mil`, `af.mil`, `marines.mil`, `spaceforce.mil`, `cybercom.mil`,
@@ -77,7 +84,7 @@ a *landscape of facts about specific domains*, **not** a country ranking (too th
 |---|---|
 | 🇩🇪 bund.de · 🇳🇱 government.nl · 🇧🇪 belgium.be · 🇬🇧 gov.uk · 🇸🇪 regeringen.se · 🇳🇴 regjeringen.no · 🇩🇰 borger.dk · 🇪🇪 eesti.ee · 🇨🇿 gov.cz · 🇵🇱 gov.pl · 🇸🇮 gov.si · 🇪🇸 lamoncloa.gob.es · 🇵🇹 gov.pt · 🇬🇷 gov.gr · 🇯🇵 japan.go.jp · 🇳🇿 govt.nz · 🇸🇬 gov.sg · 🇲🇽 gob.mx · 🇧🇷 gov.br | 🇫🇷 service-public.fr · 🇨🇭 admin.ch · 🇨🇦 canada.ca · 🇦🇺 australia.gov.au · 🇫🇮 valtioneuvosto.fi · 🇮🇪 gov.ie · 🇮🇹 governo.it · 🇮🇸 island.is · 🇦🇹 oesterreich.gv.at · 🇰🇷 korea.kr · 🇮🇳 india.gov.in · 🇿🇦 gov.za |
 
-**~19/31 ≈ 61% signed** — *below* the US federal census (75%). Western Europe is split ~50/50;
+**~19/31 ≈ 61% signed** — *below* the US federal census (76%). Western Europe is split ~50/50;
 Central/Eastern Europe (CZ, EE, PL, SI) is the strongest cluster in this sample.
 
 ### National DNS registries — the real adopters
@@ -106,10 +113,11 @@ Everyone else CNAMEs DKIM into an unsigned provider zone. ~10 of 56 internationa
   for a CNAME chain (`fully validated` for the signed pointer, `unsigned answer` for the key) —
   a naive grep passed every outsourced key; (3) parallel-load false positives → **only direct,
   fully-validated keys count as anchored.**
-- **Calibration note.** The 75.4% federal figure is ~double the last published academic number
-  (~38% in Sept 2023). Most likely real, mandate-driven growth — but treat it as a *June-2026
-  snapshot by this method*; NIST's per-domain monitor is the authoritative cross-reference. The
-  *structural* findings do not depend on the absolute number.
+- **Calibration note.** The 76% validating rate was re-confirmed three ways — controls, an
+  independent census of DS records in the `.gov` parent, and serial re-validation of every domain
+  whose two signals disagreed (which resolved a small parallel-run undercount: 7 false negatives,
+  while the other 108 DS-having "unsigned" domains are genuinely **broken DNSSEC**). It is ~2× the
+  2023 measurement (~36%), a real mandate-driven surge. NIST's monitor is the authoritative reference.
 - **Limits.** International coverage is uneven — one flagship government domain per country, and a
   national registry for 25 of ~31 (6 government-only). These are **per-domain facts, not country
   rankings.** DKIM detection used ~10 guessed selectors (no mail corpus), so DKIM presence is
@@ -117,14 +125,26 @@ Everyone else CNAMEs DKIM into an unsigned provider zone. ~10 of 56 internationa
 
 ---
 
-## Why it matters (and the 0pon tie-in)
+## What this means — trust is not a control
 
-A zero-knowledge DNSSEC proof (0nce **v2-B**) lets a verifier confirm an email key is
-authentically published — **but only if the key is anchored to root in the first place.** This
-census quantifies how rare that precondition is (~4% US federal civilian, ~0% military, ~18% of
-sampled international infra) and yields concrete validating test vectors (`gsa.gov`, `cia.gov`,
-`noaa.gov`, `denic.de`, `afnic.fr`). It also names a concrete remediation ask: **publish your
-DKIM key as a signed record in your own DNSSEC zone, not a CNAME into an unsigned tenant.**
+The pattern is identical across federal, military, and international: organizations have outsourced the
+*operation* of email and DNS without preserving the ability to *verify* it. The signed zone protects the
+front door; the key that authenticates the mail sits, unverifiable, in a vendor's unsigned zone. Each
+arrangement is a *trust-me*. None of it is negligence — it is the rational result of cloud-first,
+shared-services IT.
+
+But a system that has deliberately stopped *owning* its infrastructure — cloud-first, *zero trust* by
+policy — is one where *trust-me* is precisely what is meant to disappear. You cannot establish trust by
+owning what you no longer own; the only path left is to **verify**. **Prove it; don't trust it.** The
+immediate fix is unglamorous (publish your DKIM key as a signed record in your own DNSSEC zone, not a
+CNAME into an unsigned tenant); the general one is turning the trust-me assertions that govern
+compliance, supply chains, and identity into proofs anyone can check. The gap here is one instance of a
+larger question: *in a system that runs on outsourced trust, what else is asserted that no one can verify?*
+
+**0pon** builds verifiable attestation — the means to *prove* a security or compliance claim, not assert
+it (the 0nce / DNSSEC-in-ZK work is one arrow). Validating test vectors fall out of this census for free
+(`gsa.gov`, `cia.gov`, `denic.de`, `afnic.fr`).
+
 
 ## To make it fully rigorous
 
